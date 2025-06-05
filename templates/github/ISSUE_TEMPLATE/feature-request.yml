@@ -1,0 +1,198 @@
+name: 🚀 Feature Request (AI-Team)
+description: Request a new feature for DigiNativa. This will be analyzed by our AI team and broken down into implementable stories.
+title: "[FEATURE] "
+labels: ["feature", "ai-team"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 🤖 AI-Team Feature Request
+        
+        Denna feature request kommer att analyseras av vårt AI-team (Projektledare powered by Claude-3.5-Sonnet). 
+        AI-teamet kommer att:
+        
+        1. **Analysera** din feature mot våra design principles och målgrupp "Anna"
+        2. **Bryta ner** featuren i implementerbara stories
+        3. **Tilldela** stories till specialist-agenter (Speldesigner, Utvecklare, etc.)
+        4. **Koordinera** utveckling och kvalitetssäkring
+        
+        Ju mer detaljer du ger, desto bättre kan AI-teamet förstå och implementera din vision! 🚀
+
+  - type: input
+    id: feature_name
+    attributes:
+      label: 📝 Feature Namn
+      description: Ett kort, beskrivande namn för featuren
+      placeholder: "t.ex. Användarframsteg spårning, Interaktiv kartvy, Mobilanpassad navigation"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: target_user
+    attributes:
+      label: 👤 Primär Målgrupp
+      description: Vem ska främst dra nytta av denna feature?
+      options:
+        - Anna (offentlig förvaltare) - Huvudmålgrupp
+        - Erik (IT-chef) - Teknisk implementör  
+        - Margareta (kommunchef) - Beslutsfattare
+        - David (handläggare) - Frontline användare
+        - Annan målgrupp (specificera i beskrivning)
+    validations:
+      required: true
+
+  - type: textarea
+    id: user_story
+    attributes:
+      label: 📖 User Story
+      description: Beskriv featuren från användarens perspektiv
+      placeholder: |
+        Som [användartyp] vill jag [vad] så att [varför/nytta].
+        
+        Exempel:
+        Som Anna (offentlig förvaltare) vill jag se min inlärningsframsteg så att jag kan förstå hur mycket jag lärt mig om digitaliseringsstrategin och vad jag fortfarande behöver täcka.
+      render: markdown
+    validations:
+      required: true
+
+  - type: textarea
+    id: business_value
+    attributes:
+      label: 💼 Affärsvärde & Motivation
+      description: Varför är denna feature viktig? Vilket problem löser den?
+      placeholder: |
+        - Vilket konkret problem löser denna feature?
+        - Hur hjälper den vår målgrupp i deras dagliga arbete?
+        - Vilken påverkan förväntar du dig (t.ex. ökat engagemang, bättre lärande)?
+        - Hur relaterar detta till Sveriges digitaliseringsstrategi?
+      render: markdown
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: design_principles
+    attributes:
+      label: 🎯 Design Principles Check
+      description: Vilka av våra 5 design principles adresserar denna feature? (AI-teamet kommer att validera detta)
+      options:
+        - label: **Pedagogik Framför Allt** - Featuren har tydligt pedagogiskt värde
+        - label: **Policy till Praktik** - Kopplar abstrakt strategi till praktisk handling
+        - label: **Respekt för Tid** - Kan användas inom <10 minuters sessioner
+        - label: **Helhetssyn** - Visar systemkopplingar och samband
+        - label: **Intelligens, Inte Infantilisering** - Respekterar professionell målgrupp
+
+  - type: textarea
+    id: acceptance_criteria
+    attributes:
+      label: ✅ Acceptanskriterier
+      description: Vad krävs för att denna feature ska anses färdig?
+      placeholder: |
+        - [ ] Kriterium 1: Specifik, testbar funktionalitet
+        - [ ] Kriterium 2: Prestandakrav eller användarupplevelse
+        - [ ] Kriterium 3: Integration med befintliga system
+        - [ ] Kriterium 4: Mobilanpassning och tillgänglighet
+        
+        Exempel:
+        - [ ] Framstegsindikator visar procent färdigställt (0-100%)
+        - [ ] Användare kan se vilka ämnen som är slutförda
+        - [ ] Framsteg sparas mellan sessioner
+        - [ ] Fungerar på mobila enheter
+      render: markdown
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: 🎯 Prioritet
+      description: Hur viktig är denna feature?
+      options:
+        - Hög - Kritisk för användarupplevelsen eller affärsmål
+        - Medium - Viktigt förbättring som ökar värdet
+        - Låg - Nice-to-have som kan vänta
+    validations:
+      required: true
+
+  - type: dropdown
+    id: complexity_estimate
+    attributes:
+      label: 🔧 Uppskattad Komplexitet
+      description: Hur komplex tror du denna feature är att implementera?
+      options:
+        - Enkel - Mindre UI-förändringar eller enkla funktioner
+        - Medium - Ny funktionalitet med databasändringar
+        - Komplex - Stora förändringar eller integration med externa system
+        - Osäker - Låt AI-teamet bedöma komplexiteten
+
+  - type: textarea
+    id: technical_notes
+    attributes:
+      label: ⚙️ Tekniska Överväganden
+      description: Finns det specifika tekniska krav eller begränsningar?
+      placeholder: |
+        - Integration med befintliga system
+        - Prestandakrav
+        - Säkerhetshänsyn
+        - API-behov
+        - Databasändringar
+        - Deployment-överväganden
+      render: markdown
+
+  - type: textarea
+    id: mockups_references
+    attributes:
+      label: 🎨 Mockups eller Referenser
+      description: Länkar till design-mockups, screenshots, eller liknande system
+      placeholder: |
+        - Figma/Sketch-länkar
+        - Screenshots från andra system
+        - Referenslänkar till liknande funktionalitet
+        - Wireframes eller skisser
+
+  - type: checkboxes
+    id: additional_requirements
+    attributes:
+      label: 📋 Ytterligare Krav
+      description: Finns det andra krav att ta hänsyn till?
+      options:
+        - label: Måste fungera offline eller med dålig anslutning
+        - label: Kräver användarautentisering
+        - label: Behöver analytics/spårning för användardata
+        - label: Måste följa GDPR eller andra regulatoriska krav
+        - label: Måste vara tillgänglig för användare med funktionsnedsättning
+        - label: Kräver integration med externa API:er eller system
+
+  - type: textarea
+    id: success_metrics
+    attributes:
+      label: 📊 Framgångsmått
+      description: Hur ska vi mäta att denna feature är framgångsrik?
+      placeholder: |
+        Exempel:
+        - 80% av användare som ser framstegsindikatorn slutför fler sessioner
+        - Genomsnittlig sessionstid ökar med 15%
+        - Användarnöjdhet för denna funktion: >4.0/5.0
+        - 60% av användare återkommer inom en vecka
+      render: markdown
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        
+        ## 🤖 Nästa steg - AI-Team Process
+        
+        När du submitterar denna issue kommer vårt AI-team att:
+        
+        1. **Projektledare (Claude-3.5-Sonnet)** analyserar featuren mot DNA-dokument
+        2. **Automated Analysis** av teknisk genomförbarhet och design alignment  
+        3. **Story Breakdown** i implementerbara delar för specialist-agenter
+        4. **Agent Assignment** till Speldesigner, Utvecklare, Testutvecklare, etc.
+        5. **Progress Tracking** och updates direkt i denna GitHub Issue
+        
+        Du kommer att få automatiska updates när AI-teamet börjar arbeta! 🚀
+        
+        ### 📞 Support
+        Om du har frågor om denna process eller behöver hjälp, tagga @jhonnyo88 i kommentarerna.

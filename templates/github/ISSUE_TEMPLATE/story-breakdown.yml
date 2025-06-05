@@ -1,0 +1,279 @@
+name: 📋 Story Breakdown (AI-Team Internal)
+description: För AI-teamet att bryta ner godkända features i implementerbara stories
+title: "[STORY] "
+labels: ["story", "ai-team", "internal"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 🤖 AI-Team Story Breakdown
+        
+        Denna template används internt av AI-teamet (främst Projektledaren) för att dokumentera 
+        hur en godkänd feature bryts ner i konkreta, implementerbara stories.
+        
+        **Används typiskt när:**
+        - En feature request har godkänts av analys
+        - Projektledaren behöver dokumentera story-strukturen
+        - Team coordination kräver tydlig story-dokumentation
+
+  - type: input
+    id: parent_feature
+    attributes:
+      label: 🎯 Parent Feature
+      description: Vilken feature request är detta en breakdown av?
+      placeholder: "Issue #123: Add user progress tracking"
+    validations:
+      required: true
+
+  - type: textarea
+    id: feature_analysis_summary
+    attributes:
+      label: 📊 Analysis Summary
+      description: Kort sammanfattning av AI-analys resultatet
+      placeholder: |
+        **DNA Alignment:** ✅ Aligned with all 5 design principles
+        **Technical Feasibility:** ✅ Compatible with React + FastAPI architecture  
+        **Complexity:** Medium (4 stories estimated)
+        **Priority:** High - Critical for user retention
+        **Agents Required:** Speldesigner, Utvecklare, Testutvecklare, QA-Testare
+      render: markdown
+    validations:
+      required: true
+
+  - type: textarea
+    id: story_list
+    attributes:
+      label: 📝 Story Breakdown
+      description: Lista av alla stories som featuren bryts ner i
+      placeholder: |
+        ## Stories för Implementation
+        
+        ### STORY-123-001: UX Specification 
+        **Assigned:** Speldesigner  
+        **Type:** specification  
+        **Effort:** Medium  
+        **Description:** Create detailed UX specification for progress tracking that follows our 5 design principles
+        
+        **Acceptance Criteria:**
+        - [ ] UX specification includes progress bar design that respects <10 minute constraint
+        - [ ] Design follows 'Intelligens, Inte Infantilisering' principle with professional visual style
+        - [ ] Specification includes mobile responsive considerations
+        - [ ] Progress tracking clearly shows educational value to Anna
+        
+        ---
+        
+        ### STORY-123-002: Backend API Implementation
+        **Assigned:** Utvecklare  
+        **Type:** backend  
+        **Effort:** Medium  
+        **Dependencies:** STORY-123-001  
+        **Description:** Create FastAPI endpoints for storing and retrieving user progress data
+        
+        **Acceptance Criteria:**
+        - [ ] API endpoint GET /api/v1/user/progress returns user progress data
+        - [ ] API endpoint POST /api/v1/user/progress updates progress  
+        - [ ] API follows stateless backend principle
+        - [ ] Progress data persists between sessions
+        
+        ---
+        
+        ### STORY-123-003: Frontend Implementation  
+        **Assigned:** Utvecklare  
+        **Type:** frontend  
+        **Effort:** Medium  
+        **Dependencies:** STORY-123-001, STORY-123-002  
+        **Description:** Create React component that displays user progress in an engaging way
+        
+        **Acceptance Criteria:**
+        - [ ] Progress bar component shows completion percentage
+        - [ ] Component is responsive and works on mobile devices
+        - [ ] Visual design matches professional tone from specification
+        - [ ] Component integrates with backend API seamlessly
+        
+        ---
+        
+        ### STORY-123-004: QA Testing from Anna Perspective
+        **Assigned:** QA-Testare  
+        **Type:** qa  
+        **Effort:** Small  
+        **Dependencies:** STORY-123-003  
+        **Description:** Comprehensive testing of progress tracking feature from target user perspective
+        
+        **Acceptance Criteria:**
+        - [ ] Feature works correctly within 10-minute session constraint
+        - [ ] Progress tracking motivates continued learning
+        - [ ] No usability issues for busy professional users  
+        - [ ] Feature maintains professional tone throughout experience
+      render: markdown
+    validations:
+      required: true
+
+  - type: dropdown
+    id: total_complexity
+    attributes:
+      label: 🔧 Total Estimated Complexity
+      options:
+        - Simple (1-2 stories, 1-3 days)
+        - Medium (3-5 stories, 4-7 days)  
+        - Complex (6+ stories, 1-2 weeks)
+        - Epic (10+ stories, multiple sprints)
+    validations:
+      required: true
+
+  - type: textarea
+    id: agent_assignments
+    attributes:
+      label: 👥 Agent Assignment Summary
+      description: Översikt över vilka agenter som är involverade
+      placeholder: |
+        **Speldesigner:** 1 story (specification creation)
+        **Utvecklare:** 2 stories (backend + frontend implementation)  
+        **Testutvecklare:** 1 story (automated testing)
+        **QA-Testare:** 1 story (manual testing from Anna perspective)
+        **Kvalitetsgranskare:** 1 story (performance + architecture review)
+        
+        **Total stories:** 5
+        **Estimated timeline:** 6-8 days
+        **Critical path:** Spec → Backend → Frontend → QA
+      render: markdown
+
+  - type: textarea
+    id: dependencies_risks
+    attributes:
+      label: ⚠️ Dependencies & Risks
+      description: Identifierade beroenden och potentiella risker
+      placeholder: |
+        **Internal Dependencies:**
+        - User authentication system must be stable
+        - Database schema changes required
+        
+        **External Dependencies:**  
+        - No external API dependencies
+        
+        **Technical Risks:**
+        - Performance impact of progress calculations
+        - Mobile responsiveness complexity
+        
+        **UX Risks:**
+        - Progress display might overwhelm Anna in short sessions
+        - Risk of creating "gamification" that feels infantilizing
+        
+        **Mitigation Strategies:**
+        - Start with simple progress bar
+        - Extensive testing with target users
+        - Performance monitoring during development
+      render: markdown
+
+  - type: checkboxes
+    id: design_principle_coverage
+    attributes:
+      label: 🎯 Design Principle Coverage
+      description: Vilka design principles adresseras av denna story breakdown?
+      options:
+        - label: **Pedagogik Framför Allt** - Stories fokuserar på educational value
+        - label: **Policy till Praktik** - Konkret implementation av abstract progress concept  
+        - label: **Respekt för Tid** - Designed for <10 minute sessions
+        - label: **Helhetssyn** - Shows connections between learning modules
+        - label: **Intelligens, Inte Infantilisering** - Professional progress display
+
+  - type: textarea
+    id: definition_of_done_mapping
+    attributes:
+      label: ✅ Definition of Done Mapping
+      description: Hur mappar stories till våra 4 DoD-faser?
+      placeholder: |
+        **Fas 1: Utveckling & Kodkvalitet**
+        - All stories inkluderar kod implementation
+        - Testutvecklare story säkerställer automated testing
+        - Kodstandard enforcement via ESLint
+        
+        **Fas 2: Automatiserad Validering**  
+        - All stories måste passa 100% test suite
+        - Kvalitetsgranskare story validerar Lighthouse scores
+        
+        **Fas 3: Funktionell Granskning**
+        - QA-Testare story fokuserar på Anna-perspective testing
+        - Manual validation mot alla acceptanskriterier
+        
+        **Fas 4: Slutförande & Leverans**
+        - Integration testing mellan frontend/backend stories
+        - Deployment verification på Netlify
+      render: markdown
+
+  - type: textarea
+    id: success_metrics
+    attributes:
+      label: 📊 Success Metrics för Stories
+      description: Hur mäter vi framgång för denna story breakdown?
+      placeholder: |
+        **Development Metrics:**
+        - All stories completed within estimated effort
+        - Zero regressions introduced  
+        - Code quality gates passed first time
+        
+        **User Experience Metrics:**
+        - Feature adoption rate >70% within first week
+        - Session completion rate improvement of >15%
+        - User satisfaction score >4.0/5.0 for progress feature
+        
+        **Business Metrics:**
+        - Reduced support tickets about "Where am I in the game?"
+        - Increased return user rate (Anna comes back within 7 days)
+        - Positive feedback from target audience during testing
+      render: markdown
+
+  - type: textarea
+    id: coordination_notes
+    attributes:
+      label: 🤝 Team Coordination Notes
+      description: Viktiga koordinations-anteckningar för AI-teamet
+      placeholder: |
+        **Parallel Work Opportunities:**
+        - Speldesigner och Testutvecklare kan arbeta parallellt efter spec klar
+        - Frontend och Backend development kan överlappa delvis
+        
+        **Communication Checkpoints:**
+        - Daily sync mellan Utvecklare stories
+        - Weekly check-in med QA-Testare för early feedback
+        
+        **Handoff Points:**
+        - Spec → Development: Clear API contract established
+        - Development → QA: Feature deployed to staging environment
+        - QA → Production: All acceptanskriterier verified
+        
+        **Risk Mitigation:**
+        - Early prototyping för mobile responsiveness
+        - User testing med Anna-personas efter MVP implementation
+      render: markdown
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        
+        ## 🤖 AI-Team Workflow
+        
+        Efter att denna story breakdown är dokumenterad kommer AI-teamet att:
+        
+        1. **Story Assignment** - Varje story tilldelas relevant specialist-agent
+        2. **Dependency Management** - Stories schemaläggs baserat på dependencies  
+        3. **Progress Tracking** - Automatisk monitoring av story completion
+        4. **Quality Gates** - Validation enligt Definition of Done för varje story
+        5. **Integration** - Koordinerad integration och testing av samtliga stories
+        
+        ### 📋 Story Status Tracking
+        
+        Individuella stories kommer att få egna GitHub Issues med länkar tillbaka till denna breakdown.
+        
+        **Status Labels:**
+        - `story-pending` - Väntar på dependencies  
+        - `story-active` - Aktivt arbete pågår
+        - `story-review` - Under granskning  
+        - `story-done` - Slutförd och integrerad
+        
+        ---
+        
+        **Skapad av:** AI Projektledare (Claude-3.5-Sonnet)  
+        **Story Breakdown Version:** 1.0

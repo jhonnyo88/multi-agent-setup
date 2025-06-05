@@ -1,0 +1,233 @@
+name: 🐛 Bug Report (AI-Team)
+description: Rapportera en bugg som kommer att analyseras och prioriteras av vårt AI-team
+title: "[BUG] "
+labels: ["bug", "ai-team"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 🤖 AI-Team Bug Report
+        
+        Denna buggrapport kommer att analyseras av vårt AI-team för:
+        
+        1. **Severity Assessment** - Hur kritisk är buggen?
+        2. **Root Cause Analysis** - Vilken agent/komponent behöver fixa detta?
+        3. **Automated Assignment** - Tilldela till rätt specialist-agent
+        4. **Fix Coordination** - Koordinera fix och testing
+        
+        Tack för att du hjälper oss förbättra DigiNativa! 🚀
+
+  - type: input
+    id: bug_summary
+    attributes:
+      label: 🐛 Kort Buggbeskrivning
+      description: En mening som sammanfattar problemet
+      placeholder: "t.ex. Framstegsindikator visar fel procent efter att ha slutfört modul 3"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: user_impact
+    attributes:
+      label: 👤 Påverkan på Användare
+      description: Vem och hur påverkas av denna bugg?
+      options:
+        - Kritisk - Hindrar Anna från att använda kärnfunktionalitet
+        - Hög - Skapar frustration men workaround finns
+        - Medium - Mindre problem som påverkar upplevelsen
+        - Låg - Kosmetiskt problem som inte påverkar funktionalitet
+    validations:
+      required: true
+
+  - type: dropdown
+    id: frequency
+    attributes:
+      label: 🔄 Hur ofta uppstår problemet?
+      options:
+        - Alltid - Reproducerbar varje gång
+        - Ofta - Händer i >50% av försöken
+        - Ibland - Intermittent problem
+        - Sällan - Svår att reproducera
+        - En gång - Hände bara en gång
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps_to_reproduce
+    attributes:
+      label: 🔍 Steg för att Reproducera
+      description: Beskriv exakt hur man får fram buggen
+      placeholder: |
+        1. Gå till...
+        2. Klicka på...
+        3. Fyll i...
+        4. Se fel...
+        
+        Exempel:
+        1. Logga in som Anna
+        2. Slutför Modul 2: "Strategisk planering"
+        3. Navigera till "Min Framsteg" sidan
+        4. Framstegsindikator visar 45% istället för förväntade 67%
+      render: markdown
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected_behavior
+    attributes:
+      label: ✅ Förväntat Beteende
+      description: Vad skulle ha hänt istället?
+      placeholder: |
+        Beskriv det korrekta beteendet du förväntade dig.
+        
+        Exempel:
+        Framstegsindikator skulle visa 67% (2 av 3 moduler slutförda) och visa "Modul 1: ✅ Slutförd, Modul 2: ✅ Slutförd, Modul 3: ⏳ Pågående"
+      render: markdown
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual_behavior
+    attributes:
+      label: ❌ Faktiskt Beteende
+      description: Vad hände istället?
+      placeholder: |
+        Beskriv exakt vad som händer nu.
+        
+        Exempel:
+        Framstegsindikator visar 45% och visar "Modul 1: ✅ Slutförd, Modul 2: ⏳ Pågående, Modul 3: ⬜ Ej påbörjad" trots att Modul 2 är slutförd.
+      render: markdown
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: 🖥️ Miljöinformation
+      description: Vilken miljö använder du?
+      placeholder: |
+        - **Browser:** Chrome 120.0.0.0
+        - **OS:** Windows 11
+        - **Skärmstorlek:** Desktop (1920x1080) / Mobile (iPhone 14)
+        - **URL:** https://diginativa.netlify.app/progress
+        - **Användartyp:** Anna (offentlig förvaltare)
+        - **Session längd:** 8 minuter in i spelet
+      render: markdown
+    validations:
+      required: true
+
+  - type: dropdown
+    id: design_principle_violation
+    attributes:
+      label: 🎯 Bryter detta mot våra Design Principles?
+      description: Vilken av våra 5 principles påverkas negativt?
+      options:
+        - Pedagogik Framför Allt - Hindrar lärande eller skapar förvirring
+        - Policy till Praktik - Gör abstrakt eller svårförståelig
+        - Respekt för Tid - Slösar Annas tid eller skapar onödiga steg
+        - Helhetssyn - Bryter systemförståelse eller kopplingar
+        - Intelligens, Inte Infantilisering - Känns barnsligt eller nedlåtande
+        - Ingen specifik principle påverkad
+        - Osäker
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: 📸 Screenshots/Videos
+      description: Visa problemet visuellt (dra och släpp bilder här)
+      placeholder: |
+        Bifoga screenshots eller screen recordings som visar:
+        - Vad du ser nu (buggen)
+        - Vad du förväntade dig att se
+        - Felmeddelanden eller konsol-errors
+        
+        Tips: Du kan dra och släppa bilder direkt i detta fält!
+
+  - type: textarea
+    id: console_errors
+    attributes:
+      label: 🔧 Teknisk Information
+      description: Finns det felmeddelanden i browser console eller andra tekniska detaljer?
+      placeholder: |
+        - Console errors (tryck F12 → Console)
+        - Network errors (tryck F12 → Network)
+        - Specifika felmeddelanden
+        - API response codes
+        
+        Exempel:
+        ```
+        Uncaught TypeError: Cannot read property 'modules' of undefined
+        at ProgressCalculator.js:23
+        ```
+      render: markdown
+
+  - type: textarea
+    id: workaround
+    attributes:
+      label: 🛠️ Tillfällig Lösning (Workaround)
+      description: Finns det något sätt att komma runt problemet just nu?
+      placeholder: |
+        Exempel:
+        - Uppdatera sidan och problemet försvinner tillfälligt
+        - Använda inkognito-läge fungerar
+        - Stänga av browser extensions hjälper
+        - Inget fungerande workaround funnet
+
+  - type: dropdown
+    id: blocking_severity
+    attributes:
+      label: 🚧 Blockerar detta din användning?
+      options:
+        - Ja, kan inte fortsätta använda DigiNativa
+        - Delvis, kan använda andra delar men detta är viktigt
+        - Nej, men det är irriterande
+        - Nej, märktes bara av tillfällighet
+
+  - type: checkboxes
+    id: additional_context
+    attributes:
+      label: 📋 Ytterligare Kontext
+      options:
+        - label: Detta hände efter en uppdatering/ny release
+        - label: Problemet finns bara på mobila enheter
+        - label: Problemet finns bara på desktop
+        - label: Andra användare rapporterat samma problem
+        - label: Första gången jag använder denna funktionalitet
+        - label: Har fungerat innan men slutade plötsligt
+
+  - type: textarea
+    id: business_impact
+    attributes:
+      label: 💼 Påverkan på Arbete/Lärande
+      description: Hur påverkar denna bugg Annas (eller din) faktiska arbete eller lärande?
+      placeholder: |
+        Exempel:
+        - Anna kan inte se sin framsteg vilket gör henne osäker på om hon lärt sig tillräckligt
+        - Minskar motivationen att fortsätta med spelet
+        - Skapar otydlighet om vad som återstår att lära
+        - Påverkar inte direkt arbetet men skapar frustration
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        
+        ## 🤖 AI-Team Bug Process
+        
+        När du submitterar denna buggrapport kommer vårt AI-team att:
+        
+        1. **Automated Triage** - Severity assessment och prioritering
+        2. **Root Cause Analysis** - Identifiera vilket system/agent som påverkas
+        3. **Agent Assignment** - Tilldela till rätt specialist (Utvecklare, QA-Testare, etc.)
+        4. **Fix Coordination** - Koordinera bugfix och verifiering
+        5. **Progress Updates** - Automatiska uppdateringar i denna issue
+        
+        ### 🎯 Förväntad Resolution Time
+        - **Kritisk:** 24 timmar
+        - **Hög:** 3-5 dagar  
+        - **Medium:** 1-2 veckor
+        - **Låg:** Nästa release cykel
+        
+        Tack för din buggrapport! Du hjälper oss göra DigiNativa bättre för Anna och alla andra användare. 🚀
