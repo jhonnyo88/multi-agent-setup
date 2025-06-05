@@ -1,0 +1,58 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "diginativa-ai-team"
+version = "1.0.0"
+description = "Multi-agent AI team for developing the DigiNativa learning game"
+authors = [
+    {name = "DigiNativa Team", email = "team@diginativa.se"}
+]
+license = {text = "MIT"}
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "crewai>=0.28.8",
+    "openai>=1.0.0",
+    "fastapi>=0.100.0",
+    "requests>=2.31.0",
+    "PyGithub>=1.59.0",
+    "gitpython>=3.1.40",
+    "selenium>=4.15.0",
+    "sqlalchemy>=2.0.0",
+    "pydantic>=2.5.0",
+    "python-dotenv>=1.0.0",
+    "pyyaml>=6.0.1",
+    "click>=8.1.0",
+    "rich>=13.0.0"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+    "black>=23.0.0",
+    "flake8>=6.0.0",
+    "mypy>=1.7.0"
+]
+
+[project.urls]
+Homepage = "https://github.com/jhonnyo88/multi-agent-setup"
+Repository = "https://github.com/jhonnyo88/multi-agent-setup"
+Documentation = "https://github.com/jhonnyo88/multi-agent-setup/blob/main/README.md"
+
+[tool.black]
+line-length = 88
+target-version = ['py39']
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
