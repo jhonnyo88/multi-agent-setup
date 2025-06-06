@@ -1,0 +1,100 @@
+name: ✅ Feature Approval/Rejection (Project Owner)
+description: Approve or reject a completed feature from the AI team
+title: "[APPROVAL] "
+labels: ["feature-approval", "project-owner"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 🎯 Feature Approval Process
+        
+        Use this template to provide feedback on completed features from the AI team.
+        Your decision will guide the team's next actions.
+
+  - type: input
+    id: feature_issue
+    attributes:
+      label: Related Feature Issue
+      description: Link to the original feature request
+      placeholder: "#123 - Add user progress tracking"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: approval_status
+    attributes:
+      label: Approval Decision
+      description: Do you approve this feature for production release?
+      options:
+        - ✅ APPROVED - Feature meets requirements and is ready for release
+        - ❌ REJECTED - Feature needs significant changes before approval
+        - 🔄 MINOR CHANGES - Feature is mostly good but needs small adjustments
+    validations:
+      required: true
+
+  - type: textarea
+    id: approval_reasoning
+    attributes:
+      label: Reasoning
+      description: Explain your approval/rejection decision
+      placeholder: |
+        For APPROVED: What you liked about the implementation
+        For REJECTED: Specific issues that need to be addressed
+        For MINOR CHANGES: What small adjustments are needed
+    validations:
+      required: true
+
+  - type: textarea
+    id: required_changes
+    attributes:
+      label: Required Changes (if rejected)
+      description: Specific changes needed for approval
+      placeholder: |
+        Only fill this if status is REJECTED or MINOR CHANGES:
+        
+        1. Progress bar should show percentage numbers, not just visual bar
+        2. Mobile layout breaks on screens smaller than 320px
+        3. Loading time is too slow (>3 seconds)
+        4. Color scheme doesn't match DigiNativa brand guidelines
+      value: |
+        1. 
+        2. 
+        3.
+
+  - type: checkboxes
+    id: design_principles_feedback
+    attributes:
+      label: Design Principles Assessment
+      description: How well does the feature follow our 5 design principles?
+      options:
+        - label: "🎓 **Pedagogik Framför Allt** - Feature effectively teaches digitalization concepts"
+        - label: "🌉 **Policy till Praktik** - Bridges abstract strategy to practical application"
+        - label: "⏰ **Respekt för Tid** - Respects Anna's time constraints (<10 min sessions)"
+        - label: "🔗 **Helhetssyn** - Shows system connections and holistic thinking"
+        - label: "🎯 **Intelligens** - Maintains professional tone without infantilization"
+
+  - type: dropdown
+    id: next_priority
+    attributes:
+      label: Next Feature Priority (if approved)
+      description: What should the AI team focus on next?
+      options:
+        - Continue with roadmap order
+        - Prioritize user authentication features
+        - Focus on performance improvements
+        - Work on mobile experience
+        - Add analytics and reporting
+        - Other (specify in additional comments)
+
+  - type: textarea
+    id: additional_feedback
+    attributes:
+      label: Additional Comments
+      description: Any other feedback for the AI team
+      placeholder: |
+        - General thoughts on development quality
+        - Suggestions for process improvements
+        - Compliments for good work
+        - Areas where AI team exceeded expectations

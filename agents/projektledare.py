@@ -19,7 +19,7 @@ DEPENDENCIES:
 - Project DNA documents for decision-making guidance
 - State management system for tracking story progress
 """
-
+# from workflows.github_integration.project_owner_communication import ProjectOwnerCommunication #bortkommenterad under tester
 import os
 import json
 import asyncio
@@ -528,6 +528,61 @@ class ProjektledareAgent:
             )
             
             return False
+        
+    async def monitor_and_process_github_issues(self) -> List[Dict[str, Any]]:
+        """
+        Monitor GitHub Issues for new feature requests and process them.
+        
+        This is the main entry point for the Projektledare to automatically
+        handle feature requests from the project owner.
+        
+        Returns:
+            List of processed feature requests
+        """
+        try:
+            # Initialize GitHub communication
+            github_comm = ProjectOwnerCommunication()
+            
+            # Process new feature requests
+            processed_features = await github_comm.process_new_features()
+            
+            # Check for human feedback on completed features
+            feedback_items = await github_comm.check_for_approvals()
+            
+            # Handle any feedback that requires action
+            for feedback in feedback_items or []:
+                await self._handle_project_owner_feedback(feedback)
+            
+            print(f"✅ Processed {len(processed_features)} new features")
+            print(f"✅ Handled {len(feedback_items or [])} feedback items")
+            
+            return processed_features
+            
+        except Exception as e:
+            print(f"❌ Failed to monitor GitHub issues: {e}")
+            return []
+
+    async def _handle_project_owner_feedback(self, feedback: Dict[str, Any]):
+        """Handle feedback from project owner on completed features."""
+        feedback_status = feedback.get("status")
+        
+        if feedback_status == "APPROVED":
+            # Feature approved - continue to next feature
+            print(f"✅ Feature approved by project owner")
+            # Log success and continue with normal workflow
+            
+        elif feedback_status == "REJECTED":
+            # Feature rejected - implement feedback
+            print(f"🔄 Feature rejected - implementing feedback")
+            
+            # Extract feedback details
+            required_changes = feedback.get("feedback_details", {}).get("required_changes", [])
+            
+            # Create new stories based on feedback
+            # This would reactivate the story breakdown process with feedback incorporated
+            
+        else:
+            print(f"⚠️  Unknown feedback status: {feedback_status}")
 
 # Factory function to create and configure the Projektledare agent
 def create_projektledare() -> ProjektledareAgent:
