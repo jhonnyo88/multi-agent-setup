@@ -26,6 +26,8 @@ import asyncio
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any
 from pathlib import Path
+from workflows.github_integration.project_owner_communication import ProjectOwnerCommunication
+
 
 # CrewAI imports
 from crewai import Agent, Task, Crew
@@ -71,7 +73,7 @@ class ProjektledareAgent:
         self.current_stories = {}  # Track active story states
         self.claude_llm = self._create_claude_llm()
         self.agent = self._create_agent()
-        
+        self.github_comm = ProjectOwnerCommunication()  # GitHub communication
         # Domain context for the project
         self.domain_context = {
             "primary_domain": PROJECT_DOMAIN,
@@ -430,6 +432,85 @@ class ProjektledareAgent:
             print(f"❌ Story breakdown failed: {e}")
             return []
     
+    async def process_github_feature_and_update(self, github_issue: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Complete workflow: Analyze feature AND update GitHub with results.
+        
+        This combines analysis with GitHub communication for full automation.
+        
+        Args:
+            github_issue: GitHub Issue data including title, body, labels, etc.
+            
+        Returns:
+            Complete workflow results including GitHub updates
+        """
+        workflow_start = datetime.now()
+        
+        try:
+            print(f"🚀 Starting complete GitHub workflow for issue #{github_issue.get('number')}")
+            
+            # Step 1: Analyze the feature request
+            print("📊 Step 1: Analyzing feature request...")
+            analysis_result = await self.analyze_feature_request(github_issue)
+            
+            # Step 2: Post analysis to GitHub
+            print("💬 Step 2: Posting analysis to GitHub...")
+            github_posted = await self.github_comm.github.post_analysis_results(
+                github_issue, analysis_result
+            )
+            
+            if not github_posted:
+                print("⚠️  Warning: Could not post analysis to GitHub")
+            
+            # Step 3: Create story breakdown if approved
+            stories_created = []
+            if analysis_result.get("recommendation", {}).get("action") == "approve":
+                print("📋 Step 3: Creating story breakdown...")
+                
+                stories = await self.create_story_breakdown(analysis_result, github_issue)
+                
+                if stories:
+                    print("📝 Step 4: Creating GitHub issues for stories...")
+                    story_issues = await self.github_comm.github.create_story_breakdown_issues(
+                        github_issue, stories
+                    )
+                    stories_created = story_issues
+                    print(f"✅ Created {len(story_issues)} story issues on GitHub")
+                else:
+                    print("⚠️  No stories were created")
+            else:
+                print(f"ℹ️  Feature not approved ({analysis_result.get('recommendation', {}).get('action')}), skipping story creation")
+            
+            # Step 5: Compile complete results
+            workflow_duration = datetime.now() - workflow_start
+            
+            complete_results = {
+                "analysis": analysis_result,
+                "github_updated": github_posted,
+                "stories_created": len(stories_created),
+                "story_issues": stories_created,
+                "workflow_duration_seconds": workflow_duration.total_seconds(),
+                "completed_at": datetime.now().isoformat(),
+                "ai_model": "claude-3-5-sonnet"
+            }
+            
+            print(f"🎉 Complete workflow finished in {workflow_duration.total_seconds():.1f} seconds")
+            
+            return complete_results
+            
+        except Exception as e:
+            print(f"❌ GitHub workflow failed: {e}")
+            
+            # Return error results
+            return {
+                "error": str(e),
+                "analysis": analysis_result if 'analysis_result' in locals() else None,
+                "github_updated": False,
+                "stories_created": 0,
+                "workflow_duration_seconds": (datetime.now() - workflow_start).total_seconds(),
+                "completed_at": datetime.now().isoformat()
+            }
+
     def _validate_story_structure(self, story: Dict[str, Any]) -> bool:
         """
         Validate that a story has all required fields and valid values.
@@ -615,6 +696,58 @@ def create_projektledare() -> ProjektledareAgent:
         print("   - Missing dependencies (pip install anthropic)")
         print("   - Network connectivity issues")
         raise
+
+async def process_github_issue_complete_workflow(issue_number: int) -> Dict[str, Any]:
+    """
+    Convenience function to process a GitHub issue through the complete AI workflow.
+    
+    This is perfect for testing and for external scripts that want to trigger
+    the full AI team process on a specific GitHub issue.
+    
+    Args:
+        issue_number: GitHub issue number to process
+        
+    Returns:
+        Complete workflow results
+        
+    Usage:
+        results = await process_github_issue_complete_workflow(123)
+    """
+    try:
+        # Create GitHub communication system
+        github_comm = ProjectOwnerCommunication()
+        
+        # Fetch the specific issue
+        repo = github_comm.github.ai_repo
+        issue = repo.get_issue(issue_number)
+        
+        # Convert to our standard format
+        issue_data = {
+            "number": issue.number,
+            "title": issue.title,
+            "body": issue.body or "",
+            "labels": [{"name": label.name} for label in issue.labels],
+            "user": {"login": issue.user.login},
+            "state": issue.state,
+            "created_at": issue.created_at.isoformat(),
+            "updated_at": issue.updated_at.isoformat(),
+            "url": issue.html_url,
+            "github_issue": issue  # Keep reference for updates
+        }
+        
+        # Create Projektledare and run complete workflow
+        projektledare = create_projektledare()
+        results = await projektledare.process_github_feature_and_update(issue_data)
+        
+        return results
+        
+    except Exception as e:
+        print(f"❌ Failed to process GitHub issue #{issue_number}: {e}")
+        return {
+            "error": str(e),
+            "issue_number": issue_number,
+            "completed_at": datetime.now().isoformat()
+        }
 
 if __name__ == "__main__":
     # Test script for debugging and development
