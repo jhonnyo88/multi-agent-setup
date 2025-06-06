@@ -1,6 +1,6 @@
 # multi-agent-setup
 This is my attempt to set up a development team of AI agents.
-## <span style="color: red;">Status: In progress</span>
+- ![#f03c15](https://placehold.co/15x15/f03c15/f03c15.png) `Status: In progress`
 
 # DigiNativa AI-Team
 
