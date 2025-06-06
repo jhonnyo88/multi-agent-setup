@@ -1,18 +1,17 @@
 """
-GitHub Integration for DigiNativa AI Team
-=========================================
+Enhanced GitHub Integration for DigiNativa AI Team
+================================================
 
 PURPOSE:
-Enables the Projektledare to automatically monitor GitHub Issues,
-process feature requests, create story breakdowns, and communicate
-progress back to the human project owner.
+Complete GitHub API integration that actually posts AI analysis results
+to GitHub Issues and manages the full workflow.
 
-ADAPTATION GUIDE:
-🔧 To adapt for your project:
-1. Update REPO_OWNER and REPO_NAME in settings
-2. Modify issue templates for your domain
-3. Adjust status reporting for your workflow
-4. Customize feature approval process for your stakeholders
+WHAT'S NEW:
+- Real GitHub API posting (not just mock)
+- Better error handling and validation
+- Structured comment formatting for humans
+- Issue labeling based on AI analysis
+- Story breakdown issue creation
 """
 
 import asyncio
@@ -38,105 +37,105 @@ from workflows.status_handler import StatusHandler, report_success, report_error
 
 class GitHubIntegration:
     """
-    GitHub API integration for AI team coordination.
+    Complete GitHub API integration for AI team coordination.
     
     RESPONSIBILITIES:
     - Monitor for new feature requests
-    - Create story breakdown issues  
-    - Update issue status based on agent progress
+    - Post AI analysis results as comments
+    - Create story breakdown issues
+    - Update issue labels based on analysis
     - Handle human feedback and approvals
-    - Manage sprint lifecycle communication
     """
     
     def __init__(self):
-        """Initialize GitHub integration with authentication."""
+        """Initialize GitHub integration with proper authentication."""
         if Github is None:
             raise ImportError("PyGithub not installed. Run: pip install PyGithub")
             
+        # Get and validate GitHub token
         self.github_token = SECRETS.get("github_token")
         if not self.github_token or self.github_token.startswith("[YOUR_"):
-            raise ValueError("GitHub token not configured. Set GITHUB_TOKEN in .env file")
-        # NOTE: PyGithub v2.0+ requires Auth objects instead of direct token strings
-        # This provides better security and API separation       
-        if Auth is not None:
-            auth = Auth.Token(self.github_token)
-            self.github = Github(auth=auth)
+            raise ValueError(
+                "GitHub token not configured. Set GITHUB_TOKEN in .env file.\n"
+                "See docs/setup/github_token_setup.md for instructions."
+            )
+        
         try:
-            # Använd alltid den moderna Auth-metoden
+            # Use modern PyGithub authentication
             auth = Auth.Token(self.github_token)
-            
-            # Här adresserar vi din User-Agent-hypotes.
-            # Även om det sällan behövs kan du specificera en egen User-Agent så här:
             self.github = Github(
                 auth=auth,
-                user_agent="DigiNativa-AI-Team/1.0" # Bra praxis att ha en egen User-Agent
+                user_agent="DigiNativa-AI-Team/1.0"
             )
             
-            # Verifiera anslutningen genom att hämta användarinformation
+            # Test authentication
             authenticated_user = self.github.get_user()
-            print(f"✅ GitHub authentication successful for user: {authenticated_user.login}")
+            print(f"✅ GitHub authenticated as: {authenticated_user.login}")
             
-            # Repository-konfiguration
-            self.repo_owner = GITHUB_CONFIG["ai_team_repo"]["owner"]
-            self.repo_name = GITHUB_CONFIG["ai_team_repo"]["name"]
-            self.repo = self.github.get_repo(f"{self.repo_owner}/{self.repo_name}")
+            # Set up repository references
+            self.ai_repo_config = GITHUB_CONFIG["ai_team_repo"]
+            self.project_repo_config = GITHUB_CONFIG["project_repo"]
             
-            print(f"✅ GitHub integration initialized for repository: {self.repo.full_name}")
-
+            # Get AI team repository (where we post analysis)
+            self.ai_repo = self.github.get_repo(
+                f"{self.ai_repo_config['owner']}/{self.ai_repo_config['name']}"
+            )
+            
+            # Get project repository (where stories are created)  
+            self.project_repo = self.github.get_repo(
+                f"{self.project_repo_config['owner']}/{self.project_repo_config['name']}"
+            )
+            
+            print(f"✅ GitHub repos connected:")
+            print(f"   AI Team: {self.ai_repo.full_name}")
+            print(f"   Project: {self.project_repo.full_name}")
+            
         except GithubException as e:
             if e.status == 401:
-                print("❌ GitHub API error: 401 Bad Credentials.")
-                print("   Detta kvarstår trots modern auth. Dubbelkolla att din token har 'repo'-behörigheter.")
+                print("❌ GitHub API Error: 401 Unauthorized")
+                print("   Your GitHub token may be invalid or expired")
+                print("   Make sure the token has 'repo' permissions")
+                print("   Generate a new token at: https://github.com/settings/tokens")
             else:
-                print(f"❌ GitHub API error: {e.status} - {e.data.get('message', 'No message')}")
-            raise  # Återkasta felet efter att ha loggat det
-        except Exception as e:
-            print(f"❌ An unexpected error occurred during GitHub initialization: {e}")
+                print(f"❌ GitHub API Error: {e.status} - {e.data.get('message', 'Unknown error')}")
             raise
-        
-        # Repository configuration
-        self.repo_owner = GITHUB_CONFIG["ai_team_repo"]["owner"]
-        self.repo_name = GITHUB_CONFIG["ai_team_repo"]["name"]
-        self.repo = self.github.get_repo(f"{self.repo_owner}/{self.repo_name}")
-        
-        print(f"✅ GitHub integration initialized for {self.repo_owner}/{self.repo_name}")
+        except Exception as e:
+            print(f"❌ Unexpected GitHub error: {e}")
+            raise
     
     async def monitor_new_feature_requests(self) -> List[Dict[str, Any]]:
         """
-        Monitor GitHub Issues for new feature requests.
+        Scan GitHub Issues for new feature requests that need AI analysis.
         
-        WORKFLOW:
-        1. Scan for issues with 'feature' label that are 'open'
-        2. Filter for issues not yet processed by AI team
-        3. Return list of new feature requests for processing
+        DETECTION LOGIC:
+        1. Look for issues with 'enhancement' or 'ai-team' labels
+        2. Check if issue already has AI analysis comment
+        3. Return unprocessed issues for Projektledare analysis
         
         Returns:
-            List of GitHub issue data ready for Projektledare analysis
+            List of GitHub issues ready for AI processing
         """
         try:
-            # Get all open issues with 'feature' label
-            issues = self.repo.get_issues(
+            print("🔍 Scanning for new feature requests...")
+            
+            # Get open issues with relevant labels
+            issues = self.ai_repo.get_issues(
                 state='open',
-                labels=['enhancement', 'ai-team']  # Updated to match your templates
+                labels=['enhancement', 'ai-team']
             )
             
             new_feature_requests = []
             
             for issue in issues:
-                # Check if issue has been processed by checking for AI team comments
-                has_ai_response = False
-                try:
-                    comments = list(issue.get_comments())
-                    has_ai_response = any(
-                        comment.user.login == "github-actions[bot]" or 
-                        "🤖 AI-Team Analysis" in comment.body
-                        for comment in comments
-                    )
-                except Exception as e:
-                    print(f"⚠️  Could not check comments for issue #{issue.number}: {e}")
+                print(f"   Checking issue #{issue.number}: {issue.title}")
                 
-                if not has_ai_response:
-                    # Convert GitHub Issue to our format
+                # Check if AI has already analyzed this issue
+                has_ai_analysis = await self._check_for_ai_analysis(issue)
+                
+                if not has_ai_analysis:
+                    print(f"   ✅ Found new feature request: #{issue.number}")
+                    
+                    # Convert to our standard format
                     issue_data = {
                         "number": issue.number,
                         "title": issue.title,
@@ -145,85 +144,381 @@ class GitHubIntegration:
                         "user": {"login": issue.user.login},
                         "state": issue.state,
                         "created_at": issue.created_at.isoformat(),
+                        "updated_at": issue.updated_at.isoformat(),
                         "url": issue.html_url,
                         "github_issue": issue  # Keep reference for updates
                     }
                     new_feature_requests.append(issue_data)
+                else:
+                    print(f"   ⏭️  Already processed: #{issue.number}")
             
-            print(f"📥 Found {len(new_feature_requests)} new feature requests to process")
+            print(f"📥 Found {len(new_feature_requests)} new requests to process")
             return new_feature_requests
             
         except GithubException as e:
-            print(f"❌ GitHub API error: {e}")
-            report_error("github_integration", "GITHUB_API_ERROR", str(e))
+            print(f"❌ GitHub API error while monitoring: {e}")
+            report_error("github_integration", "MONITOR_ERROR", str(e))
             return []
         except Exception as e:
             print(f"❌ Unexpected error monitoring issues: {e}")
             return []
-
-    # Resten av metoderna från din ursprungliga kod...
-    async def create_analysis_comment(self, issue_data: Dict[str, Any], 
-                                    analysis_result: Dict[str, Any]) -> bool:
-        """Post Projektledare's analysis results as a comment on the GitHub issue."""
+    
+    async def _check_for_ai_analysis(self, issue: Issue) -> bool:
+        """Check if an issue already has AI analysis comments."""
+        try:
+            comments = list(issue.get_comments())
+            
+            for comment in comments:
+                # Look for AI analysis markers in comment body
+                if ("🤖 AI-Team Analysis" in comment.body or 
+                    "AI Projektledare" in comment.body or
+                    comment.user.login == "github-actions[bot]"):
+                    return True
+            
+            return False
+            
+        except Exception as e:
+            print(f"⚠️  Could not check comments for issue #{issue.number}: {e}")
+            return False  # Assume not processed to be safe
+    
+    async def post_analysis_results(self, issue_data: Dict[str, Any], 
+                                  analysis_result: Dict[str, Any]) -> bool:
+        """
+        Post Projektledare's analysis results as a comment on the GitHub issue.
+        
+        This is the key function that makes AI analysis visible to humans.
+        
+        Args:
+            issue_data: The GitHub issue data
+            analysis_result: The Projektledare's analysis
+            
+        Returns:
+            True if comment was posted successfully
+        """
         try:
             issue = issue_data["github_issue"]
             
-            # Create formatted analysis comment
-            comment_body = self._format_analysis_comment(analysis_result)
+            print(f"📝 Posting AI analysis to issue #{issue.number}...")
             
-            # Post comment
+            # Create formatted comment
+            comment_body = self._format_analysis_comment(analysis_result, issue_data)
+            
+            # Post the comment
             comment = issue.create_comment(comment_body)
             
-            # Add labels based on analysis
-            recommendation = analysis_result.get("recommendation", {})
-            if recommendation.get("action") == "approve":
-                issue.add_to_labels("ai-approved", "in-development")
-            elif recommendation.get("action") == "clarify":
-                issue.add_to_labels("needs-clarification")
-            else:
-                issue.add_to_labels("ai-review-needed")
+            # Update issue labels based on analysis
+            await self._update_issue_labels(issue, analysis_result)
             
-            print(f"✅ Posted analysis comment on issue #{issue.number}")
+            print(f"✅ Posted analysis comment: {comment.html_url}")
+            
+            # Log success
+            report_success(
+                "github_integration", 
+                "ANALYSIS_POSTED",
+                issue_number=issue.number,
+                comment_id=comment.id,
+                recommendation=analysis_result.get("recommendation", {}).get("action")
+            )
+            
             return True
             
-        except Exception as e:
-            print(f"❌ Failed to post analysis comment: {e}")
+        except GithubException as e:
+            print(f"❌ GitHub API error posting comment: {e}")
+            report_error("github_integration", "COMMENT_POST_ERROR", str(e))
             return False
-
-    def _format_analysis_comment(self, analysis_result: Dict[str, Any]) -> str:
-        """Format Projektledare analysis as GitHub comment."""
-        recommendation = analysis_result.get("recommendation", {})
-        dna_alignment = analysis_result.get("dna_alignment", {})
-        complexity = analysis_result.get("complexity", {})
+        except Exception as e:
+            print(f"❌ Error posting analysis comment: {e}")
+            return False
+    
+    def _format_analysis_comment(self, analysis: Dict[str, Any], 
+                                issue_data: Dict[str, Any]) -> str:
+        """
+        Format AI analysis as a human-readable GitHub comment.
         
-        return f"""## 🤖 AI-Team Analysis Results
+        DESIGN GOALS:
+        - Clear, professional presentation
+        - Actionable information for project owner
+        - Links to next steps in workflow
+        - Swedish language for project communication
+        """
+        recommendation = analysis.get("recommendation", {})
+        dna_alignment = analysis.get("dna_alignment", {})
+        complexity = analysis.get("complexity", {})
+        risk_assessment = analysis.get("risk_assessment", {})
+        
+        # Main recommendation
+        action = recommendation.get("action", "unknown").upper()
+        reasoning = recommendation.get("reasoning", "Ingen motivering angiven")
+        
+        # Status emoji based on recommendation
+        status_emoji = {
+            "APPROVE": "✅",
+            "REJECT": "❌", 
+            "CLARIFY": "❓",
+            "DEFER": "⏸️"
+        }.get(action, "🤖")
+        
+        comment = f"""## {status_emoji} AI-Team Analys Slutförd
 
-### 📋 Analysis Summary
-- **Recommendation**: {recommendation.get('action', 'unknown').upper()}
-- **Priority**: {recommendation.get('priority', 'medium')}
-- **Estimated Stories**: {complexity.get('estimated_stories', 'unknown')}
-- **Estimated Duration**: {complexity.get('estimated_days', 'unknown')} days
+### 📋 Analysresultat
+- **Rekommendation**: {action}
+- **Prioritet**: {recommendation.get('priority', 'medium')}
+- **Estimerade Stories**: {complexity.get('estimated_stories', 'okänt')}
+- **Estimerad tid**: {complexity.get('estimated_days', 'okänt')} dagar
 
-### 🎯 DNA Alignment Check
-- **Vision/Mission Aligned**: {'✅' if dna_alignment.get('vision_mission_aligned') else '❌'}
-- **Target Audience Served**: {'✅' if dna_alignment.get('target_audience_served') else '❌'}
-- **Design Principles Compatible**: {'✅' if dna_alignment.get('design_principles_compatible') else '❌'}
-
-### 👥 Required Agents
+### 🎯 DNA-Kontroll (Projektmål)
+"""
+        
+        # DNA Alignment details
+        if dna_alignment:
+            vision_ok = "✅" if dna_alignment.get('vision_mission_aligned') else "❌"
+            audience_ok = "✅" if dna_alignment.get('target_audience_served') else "❌"
+            principles_ok = "✅" if dna_alignment.get('design_principles_compatible') else "❌"
+            
+            comment += f"""- **Vision/Mission-anpassad**: {vision_ok}
+- **Målgrupp (Anna) tjänas**: {audience_ok}
+- **Designprinciper kompatibla**: {principles_ok}
+"""
+            
+            if dna_alignment.get("concerns"):
+                comment += f"\n**⚠️ Identifierade bekymmer:**\n"
+                for concern in dna_alignment["concerns"]:
+                    comment += f"- {concern}\n"
+        
+        # Required agents
+        if complexity.get("required_agents"):
+            comment += f"""
+### 👥 Krävda AI-Agenter
 {', '.join(complexity.get('required_agents', []))}
+"""
+        
+        # Risk assessment
+        if risk_assessment.get("technical_risks") or risk_assessment.get("ux_risks"):
+            comment += f"\n### ⚠️ Riskbedömning\n"
+            
+            if risk_assessment.get("technical_risks"):
+                comment += "**Tekniska risker:**\n"
+                for risk in risk_assessment["technical_risks"]:
+                    comment += f"- {risk}\n"
+            
+            if risk_assessment.get("ux_risks"):
+                comment += "**UX-risker:**\n" 
+                for risk in risk_assessment["ux_risks"]:
+                    comment += f"- {risk}\n"
+        
+        # Next steps based on recommendation
+        comment += f"\n### 🚀 Nästa Steg\n"
+        
+        if action == "APPROVE":
+            comment += """AI-teamet kommer nu att:
+1. 📋 Skapa detaljerade stories för implementation
+2. 🎨 Speldesigner skapar UX-specifikation
+3. 💻 Utvecklare implementerar funktion
+4. 🧪 Testutvecklare skapar automatiska tester
+5. 🔍 QA-testare validerar från Annas perspektiv
 
-### 🔄 Next Steps
-{recommendation.get('reasoning', 'Analysis complete - awaiting next steps')}
+**Förväntad leveranstid**: {estimated_days} dagar""".format(
+                estimated_days=complexity.get('estimated_days', '4-6')
+            )
+        elif action == "CLARIFY":
+            comment += f"**Behöver förtydligande**: {reasoning}\n\n"
+            comment += "Vänligen uppdatera issue-beskrivningen med mer detaljer och tagga @ai-team för omanalys."
+        elif action == "REJECT":
+            comment += f"**Ej godkänd**: {reasoning}\n\n"
+            comment += "Överväg att revidera feature-förfrågan så den bättre matchar projektets mål och designprinciper."
+        
+        # Footer
+        comment += f"""
 
 ---
-*Analysis completed by AI Projektledare using Claude-3.5-Sonnet*
+*Analys genomförd av AI Projektledare (Claude-3.5-Sonnet) • {datetime.now().strftime('%Y-%m-%d %H:%M')}*
+*Issue #{issue_data['number']} • DigiNativa AI-Team v1.0*"""
+        
+        return comment
+    
+    async def _update_issue_labels(self, issue: Issue, analysis: Dict[str, Any]):
+        """Update issue labels based on AI analysis results."""
+        try:
+            recommendation = analysis.get("recommendation", {})
+            action = recommendation.get("action", "").lower()
+            
+            # Remove any existing AI labels
+            existing_labels = [label.name for label in issue.labels]
+            ai_labels_to_remove = [label for label in existing_labels 
+                                 if label.startswith("ai-") and label != "ai-team"]
+            
+            for label in ai_labels_to_remove:
+                try:
+                    issue.remove_from_labels(label)
+                except:
+                    pass  # Label might not exist
+            
+            # Add new labels based on analysis
+            if action == "approve":
+                issue.add_to_labels("ai-approved", "in-development")
+                
+                # Add priority label
+                priority = recommendation.get("priority", "medium")
+                issue.add_to_labels(f"priority-{priority}")
+                
+            elif action == "clarify":
+                issue.add_to_labels("ai-needs-clarification", "blocked")
+                
+            elif action == "reject":
+                issue.add_to_labels("ai-rejected")
+            
+            # Add complexity label
+            complexity = analysis.get("complexity", {})
+            complexity_level = complexity.get("complexity_level", "").lower()
+            if complexity_level:
+                issue.add_to_labels(f"complexity-{complexity_level}")
+            
+            print(f"   ✅ Updated labels for issue #{issue.number}")
+            
+        except Exception as e:
+            print(f"   ⚠️  Could not update labels: {e}")
+    
+    async def create_story_breakdown_issues(self, parent_issue_data: Dict[str, Any], 
+                                          stories: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Create individual GitHub Issues for each story in the breakdown.
+        
+        This creates a clear task structure that humans can follow.
+        
+        Args:
+            parent_issue_data: The original feature request
+            stories: List of story definitions from Projektledare
+            
+        Returns:
+            List of created story issues
+        """
+        try:
+            print(f"📋 Creating {len(stories)} story issues...")
+            
+            created_issues = []
+            parent_issue_number = parent_issue_data["number"]
+            
+            for story in stories:
+                story_issue = await self._create_single_story_issue(
+                    story, parent_issue_number
+                )
+                if story_issue:
+                    created_issues.append(story_issue)
+            
+            # Update parent issue with links to child stories
+            await self._update_parent_with_story_links(
+                parent_issue_data["github_issue"], created_issues
+            )
+            
+            print(f"✅ Created {len(created_issues)} story issues")
+            return created_issues
+            
+        except Exception as e:
+            print(f"❌ Error creating story breakdown: {e}")
+            return []
+    
+    async def _create_single_story_issue(self, story: Dict[str, Any], 
+                                       parent_issue_number: int) -> Optional[Dict[str, Any]]:
+        """Create a single GitHub Issue for a story."""
+        try:
+            # Format story as GitHub Issue
+            title = f"[STORY] {story['title']}"
+            
+            body = f"""## 📋 Story från Feature #{parent_issue_number}
+
+**Story ID**: {story['story_id']}
+**Tilldelad Agent**: {story['assigned_agent']}
+**Story-typ**: {story['story_type']}
+**Estimerad insats**: {story['estimated_effort']}
+
+### 📝 Beskrivning
+{story['description']}
+
+### ✅ Acceptanskriterier
 """
+            
+            for criterion in story['acceptance_criteria']:
+                body += f"- [ ] {criterion}\n"
+            
+            if story.get('dependencies'):
+                body += f"\n### 🔗 Beroenden\n"
+                for dep in story['dependencies']:
+                    body += f"- {dep}\n"
+            
+            if story.get('design_principles_addressed'):
+                body += f"\n### 🎯 Designprinciper som adresseras\n"
+                for principle in story['design_principles_addressed']:
+                    body += f"- {principle}\n"
+            
+            body += f"""
+### 🤖 AI-Agent Information
+**Ansvarig agent**: {story['assigned_agent']}
+**Definierad av**: AI Projektledare
+**Skapad**: {datetime.now().strftime('%Y-%m-%d %H:%M')}
+
+---
+*Denna story är del av automated workflow för Feature #{parent_issue_number}*
+*AI-Team kan börja arbeta på denna när alla beroenden är uppfyllda*
+"""
+            
+            # Create the issue
+            new_issue = self.project_repo.create_issue(
+                title=title,
+                body=body,
+                labels=['story', 'ai-generated', f'agent-{story["assigned_agent"]}', 
+                       f'effort-{story["estimated_effort"].lower()}']
+            )
+            
+            print(f"   ✅ Created story issue #{new_issue.number}: {story['story_id']}")
+            
+            return {
+                "story_id": story['story_id'],
+                "github_issue": new_issue,
+                "number": new_issue.number,
+                "url": new_issue.html_url,
+                "assigned_agent": story['assigned_agent']
+            }
+            
+        except Exception as e:
+            print(f"   ❌ Failed to create story issue for {story['story_id']}: {e}")
+            return None
+    
+    async def _update_parent_with_story_links(self, parent_issue: Issue, 
+                                            story_issues: List[Dict[str, Any]]):
+        """Add comment to parent issue with links to all created stories."""
+        try:
+            comment_body = f"""## 📋 Story Breakdown Skapad
+
+AI-teamet har skapat {len(story_issues)} implementerings-stories:
+
+"""
+            
+            for story_issue in story_issues:
+                comment_body += f"- #{story_issue['number']}: {story_issue['story_id']} (→ {story_issue['assigned_agent']})\n"
+            
+            comment_body += f"""
+### 🚀 Utvecklingsprocess
+Stories kommer att implementeras i följande ordning baserat på beroenden och agent-tillgänglighet.
+
+**Spårning**: Följ länkarna ovan för att se framsteg på varje story.
+**Estimerad total tid**: {sum(1 for _ in story_issues)} stories implementeras parallellt/sekventiellt.
+
+---
+*Automatisk story-breakdown av AI Projektledare • {datetime.now().strftime('%Y-%m-%d %H:%M')}*
+"""
+            
+            parent_issue.create_comment(comment_body)
+            print(f"   ✅ Updated parent issue #{parent_issue.number} with story links")
+            
+        except Exception as e:
+            print(f"   ⚠️  Could not update parent issue: {e}")
 
 
-# Integration with Projektledare Agent
 class ProjectOwnerCommunication:
     """
-    High-level interface for Projektledare to communicate with project owner.
+    High-level interface for Projektledare to communicate with project owner via GitHub.
+    
+    This is the main class that Projektledare uses for all GitHub operations.
     """
     
     def __init__(self):
@@ -231,46 +526,82 @@ class ProjectOwnerCommunication:
         self.status_handler = StatusHandler()
     
     async def process_new_features(self) -> List[Dict[str, Any]]:
-        """Main entry point for processing new feature requests."""
-        # Get new feature requests
+        """
+        Main entry point: Process all new feature requests found on GitHub.
+        
+        WORKFLOW:
+        1. Scan GitHub for new feature requests
+        2. For each request, trigger Projektledare analysis
+        3. Post analysis results to GitHub
+        4. Create story breakdown if approved
+        
+        Returns:
+            List of processed features with their analysis results
+        """
+        print("🚀 Starting feature request processing...")
+        
+        # Get new feature requests from GitHub
         new_requests = await self.github.monitor_new_feature_requests()
+        
+        if not new_requests:
+            print("ℹ️  No new feature requests found")
+            return []
         
         processed_features = []
         
         for request in new_requests:
             try:
-                print(f"🔍 Processing feature request #{request['number']}: {request['title']}")
+                print(f"\n🔍 Processing #{request['number']}: {request['title']}")
                 
-                # We'll implement the actual processing later
-                # For now, just create a mock analysis
-                analysis = {
-                    "recommendation": {"action": "approve", "priority": "medium"},
-                    "dna_alignment": {"vision_mission_aligned": True},
-                    "complexity": {"estimated_stories": 3, "required_agents": ["speldesigner", "utvecklare"]}
-                }
+                # Import here to avoid circular imports
+                from agents.projektledare import create_projektledare
                 
-                # Post analysis to GitHub
-                await self.github.create_analysis_comment(request, analysis)
+                # Create Projektledare and run analysis
+                projektledare = create_projektledare()
+                analysis = await projektledare.analyze_feature_request(request)
+                
+                # Post analysis results to GitHub
+                posted = await self.github.post_analysis_results(request, analysis)
+                
+                if posted:
+                    print(f"   ✅ Posted analysis to GitHub")
+                    
+                    # If approved, create story breakdown
+                    if analysis.get("recommendation", {}).get("action") == "approve":
+                        print(f"   📋 Creating story breakdown...")
+                        
+                        stories = await projektledare.create_story_breakdown(analysis, request)
+                        
+                        if stories:
+                            story_issues = await self.github.create_story_breakdown_issues(
+                                request, stories
+                            )
+                            print(f"   ✅ Created {len(story_issues)} story issues")
+                        else:
+                            print(f"   ⚠️  No stories created")
                 
                 processed_features.append({
                     "request": request,
                     "analysis": analysis,
-                    "processed_at": datetime.now().isoformat()
+                    "processed_at": datetime.now().isoformat(),
+                    "github_updated": posted
                 })
                 
             except Exception as e:
-                print(f"❌ Failed to process feature request #{request['number']}: {e}")
+                print(f"❌ Failed to process #{request['number']}: {e}")
                 report_error("project_owner_communication", "FEATURE_PROCESSING_ERROR", str(e))
         
+        print(f"\n🎉 Processed {len(processed_features)} feature requests")
         return processed_features
     
     async def check_for_approvals(self) -> List[Dict[str, Any]]:
         """Check for human approvals/rejections of completed features."""
-        # Placeholder for now
+        # TODO: Implement approval checking
+        # This would scan for issues with 'feature-approval' label
         return []
 
 
-# Factory function for easy integration
+# Factory function for easy usage
 def create_project_owner_communication() -> ProjectOwnerCommunication:
-    """Create and configure project owner communication system."""
+    """Create configured GitHub communication system."""
     return ProjectOwnerCommunication()
