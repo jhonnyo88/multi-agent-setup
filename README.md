@@ -5,7 +5,7 @@ framework for building multi AI-agents devteam
 
 *A complete multi-agent AI team for developing interactive learning games - and a reference implementation for building AI development teams in any domain.*
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: CC BY-NC-SA 4.0](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![AI Framework](https://img.shields.io/badge/AI-CrewAI-green.svg)](https://github.com/joaomdmoura/crewAI)
 
@@ -627,23 +627,22 @@ Vote on and contribute to upcoming features:
 
 ---
 
-## 📄 License & Legal
-
-### MIT License
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+### License: Creative Commons BY-NC-SA 4.0
+This project is licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International license. See the `LICENSE` file for full details.
 
 **What this means:**
-- ✅ **Commercial Use:** Use this for your business projects
-- ✅ **Modification:** Adapt and customize freely  
-- ✅ **Distribution:** Share with others
-- ✅ **Private Use:** Use internally in your organization
-- ⚠️ **Attribution:** Include license notice in your adaptations
+- ❌ **Commercial Use:** You may **not** use this project for primarily commercial purposes without explicit permission.
+- ✅ **Modification:** Adapt and build upon the project freely.
+- ✅ **Distribution:** Share the project and your adaptations with others.
+- ✅ **Private Use:** Use internally within your organization or for personal, non-commercial projects.
+- ⚠️ **Attribution:** You must give appropriate credit, provide a link to the license, and indicate if changes were made.
+- ⚠️ **ShareAlike:** If you remix, transform, or build upon the material, you must distribute your contributions under the same license as the original.
 
 ### Trademark Notice
-"DigiNativa" is a trademark used for our specific learning game implementation. When adapting this framework for your project, please use your own project name and branding.
+"DigiNativa" is a trademark used for our specific implementation of this learning game. When you adapt this framework for your project, please use your own project name and branding.
 
 ### Contributing License Agreement
-By contributing to this project, you agree that your contributions will be licensed under the same MIT License.
+By contributing to this project, you agree that your contributions will be licensed under the same Creative Commons BY-NC-SA 4.0 license.
 
 ---
 
@@ -655,17 +654,6 @@ By contributing to this project, you agree that your contributions will be licen
 - **[React](https://reactjs.org/):** Frontend framework for modern web applications
 - **[FastAPI](https://fastapi.tiangolo.com/):** High-performance Python web framework
 - **[Netlify](https://netlify.com/):** Serverless deployment and hosting platform
-
-### Inspiration & Research
-- **Academic Research:** Multi-agent systems, AI software development, automated programming
-- **Industry Pioneers:** Companies successfully implementing AI in software development
-- **Open Source Community:** Countless contributors to the tools and frameworks we use
-
-### Special Thanks
-- **Early Adopters:** Organizations testing and providing feedback on the framework
-- **Beta Testers:** Developers who helped identify and fix critical issues
-- **Documentation Contributors:** Writers and translators improving accessibility
-- **Domain Experts:** Subject matter experts helping optimize agent performance
 
 ---
 
