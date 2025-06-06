@@ -145,3 +145,11 @@ body:
         **Estimated timeline:** Simple features: 2-4 days | Complex features: 1-2 weeks
         
         Thank you for helping improve DigiNativa! 🚀
+
+  - type: markdown
+    attributes:
+      value: |
+        ## 📖 New to AI Team Management?
+          
+        Read our [Project Owner's Guide](../../docs/project-management/PROJECT_OWNER_GUIDE.md) 
+        for complete instructions on how to work with your AI development team.

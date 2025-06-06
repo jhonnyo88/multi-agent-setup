@@ -156,6 +156,22 @@ Feature Request (GitHub Issue)
 
 ---
 
+## 👨‍💼 For Project Owners
+
+New to managing AI development teams? Start here:
+
+📖 **[Project Owner's Guide](docs/project-management/PROJECT_OWNER_GUIDE.md)** - Complete guide to directing your AI team
+
+🎯 **Quick Start for Owners:**
+1. Define your features in `docs/dna/roadmap.md`  
+2. Create GitHub Issues for new features
+3. Monitor progress and approve completed work
+4. The AI team handles all technical implementation
+
+**No coding experience required** - communicate through GitHub Issues and get professional results.
+
+---
+
 ## 🔧 Adapting for Your Project
 
 This implementation is specifically built for DigiNativa (a learning game for Swedish public sector), but **the structure is designed to be highly adaptable**.
