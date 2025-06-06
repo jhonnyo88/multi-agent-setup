@@ -1,6 +1,6 @@
 # multi-agent-setup
 This is my attempt to set up a development team of AI agents.
-Status: In progress
+## Status: In progress
 
 # DigiNativa AI-Team
 
