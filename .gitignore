@@ -51,6 +51,7 @@ state/*.db
 state/logs/
 monitoring/reports/
 *.log
+reports/
 
 # Secrets (never commit these!)
 .env

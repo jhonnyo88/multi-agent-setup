@@ -187,8 +187,8 @@ class FilePathValidator:
                 return False, f"Path outside project boundaries: {file_path}"
             
             # Check against allowed paths
-            relative_path = str(path.relative_to(PROJECT_ROOT))
-            path_allowed = any(relative_path.startswith(allowed) for allowed in allowed_paths)
+            relative_path_str = str(path.relative_to(PROJECT_ROOT)).replace('\\', '/')
+            path_allowed = any(relative_path_str.startswith(allowed) for allowed in allowed_paths)
             
             if not path_allowed:
                 return False, f"Path not in allowed {operation} directories: {file_path}"
