@@ -37,8 +37,8 @@ from typing import Dict, List, Optional, Union, Any
 from dataclasses import dataclass
 
 # CrewAI imports
-from crewai.tools import BaseTool
-from pydantic import BaseModel, Field
+from langchain_core.tools import BaseTool
+from pydantic import BaseModel, Field, AliasChoices 
 
 # Project imports
 from config.settings import PROJECT_ROOT, DOCS_DIR, DNA_DIR, STATE_DIR
@@ -216,13 +216,21 @@ class FilePathValidator:
 
 class FileReadInput(BaseModel):
     """Input model for file reading operations."""
-    file_path: str = Field(..., description="Path to the file to read")
+    file_path: str = Field(
+        ..., 
+        description="Path to the file to read",
+        validation_alias=AliasChoices('file_path', 'path')
+    )
     encoding: str = Field(default="utf-8", description="File encoding (default: utf-8)")
     agent_name: str = Field(default="unknown", description="Name of the agent performing the operation")
 
 class FileWriteInput(BaseModel):
     """Input model for file writing operations."""
-    file_path: str = Field(..., description="Path where the file should be saved")
+    file_path: str = Field(
+        ..., 
+        description="Path where the file should be saved",
+        validation_alias=AliasChoices('file_path', 'filename')
+    )
     content: str = Field(..., description="Content to write to the file")
     encoding: str = Field(default="utf-8", description="File encoding (default: utf-8)")
     agent_name: str = Field(default="unknown", description="Name of the agent performing the operation")

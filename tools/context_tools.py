@@ -7,7 +7,7 @@ Dessa verktyg ger agenterna förmågan att förstå sin egen arbetsmiljö,
 t.ex. att söka efter filer och förstå katalogstrukturen.
 """
 from typing import Type
-from crewai.tools import BaseTool
+from langchain_core.tools import BaseTool
 from pydantic import BaseModel, Field
 import os
 

@@ -1,14 +1,14 @@
 blank_issues_enabled: false
 contact_links:
-  - name: 📚 DigiNativa Documentation
+  - name: 📖 DigiNativa Documentation
     url: https://github.com/jhonnyo88/multi-agent-setup/blob/main/README.md
-    about: Läs mer om projektet och AI-teamet
-  - name: 🤖 AI-Team Status Dashboard
-    url: https://github.com/jhonnyo88/multi-agent-setup/projects
-    about: Se vad AI-teamet arbetar på just nu
-  - name: 💬 Diskussioner & Frågor
+    about: Read our comprehensive setup and usage guide
+  - name: 💬 Community Discussions
     url: https://github.com/jhonnyo88/multi-agent-setup/discussions
-    about: Allmänna frågor och diskussioner om DigiNativa
-  - name: 🔧 Teknisk Support
-    url: https://github.com/jhonnyo88/multi-agent-setup/wiki
-    about: Teknisk dokumentation och troubleshooting
+    about: Ask questions and share experiences with other AI team builders
+  - name: 🚀 AI Team Status Dashboard
+    url: https://github.com/jhonnyo88/multi-agent-setup/actions
+    about: Check current status of our AI development team
+  - name: 📊 Project Roadmap
+    url: https://github.com/jhonnyo88/multi-agent-setup/projects
+    about: See what features are planned and in development

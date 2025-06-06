@@ -29,7 +29,6 @@ from pathlib import Path
 
 # CrewAI imports
 from crewai import Agent, Task, Crew
-from crewai.tools import BaseTool
 from langchain_anthropic import ChatAnthropic # Changed import
 
 # Project imports

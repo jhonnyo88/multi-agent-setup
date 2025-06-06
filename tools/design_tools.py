@@ -19,7 +19,8 @@ from typing import List, Type
 import os
 import json
 
-from crewai.tools import BaseTool
+# Ny, korrekt rad:
+from langchain_core.tools import BaseTool
 from pydantic import BaseModel, Field
 from langchain_anthropic import ChatAnthropic
 

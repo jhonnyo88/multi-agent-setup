@@ -6,7 +6,8 @@ import json
 from pathlib import Path
 import sys
 
-project_root = Path(__file__).resolve().parent.parent
+# Lägg till projektroten i sökvägen
+project_root = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 from crewai import Crew, Process, Task
@@ -19,9 +20,11 @@ from agents.kvalitetsgranskare import create_kvalitetsgranskare_agent
 from tools.file_tools import read_file
 from config.settings import PROJECT_ROOT
 
+# Definiera och säkerställ att rapport-katalogen finns
 REPORTS_DIR = PROJECT_ROOT / "reports"
 REPORTS_DIR.mkdir(parents=True, exist_ok=True)
 (REPORTS_DIR / "specs").mkdir(exist_ok=True)
+
 
 def print_section(title: str):
     print(f"\n{'='*70}\n🚀 {title}\n{'='*70}")
@@ -31,6 +34,7 @@ def print_success(message: str):
 
 def print_info(message: str):
     print(f"ℹ️  {message}")
+
 
 async def test_full_lifecycle():
     print_section("Startar End-to-End Test av Hela AI-Teamet")
@@ -42,6 +46,7 @@ async def test_full_lifecycle():
         "title": "Add user progress tracking to game",
         "body": "As Anna, I want to see my progress to understand what I've learned, respecting my time and intelligence.",
     }
+    # Vi anropar analysen, men vi behöver inte använda resultatet för att bygga filnamnet.
     feature_analysis = await projektledare_wrapper.analyze_feature_request(mock_github_issue)
 
     # --- STEG 2: INSTANSIERA HELA TEAMET ---
@@ -53,14 +58,13 @@ async def test_full_lifecycle():
     
     # --- STEG 3: DEFINIERA HELA UPPGIFTSKEDJAN ---
     
-    # KORRIGERING HÄR: Hämta 'number' direkt från mock-objektet.
+    # KORRIGERING: Hämta 'number' direkt från mock_github_issue-objektet.
     spec_file_path_str = f"reports/specs/spec_F{mock_github_issue['number']}.md"
     spec_file_path = REPORTS_DIR / "specs" / f"spec_F{mock_github_issue['number']}.md"
 
-
     # Uppgift för Speldesigner
     spec_task = Task(
-        description=f"Skapa en detaljerad spelspecifikation för featuren 'User Progress Tracking', baserat på följande analys:\n---\n{json.dumps(feature_analysis, indent=2, ensure_ascii=False)}\n---",
+        description=f"Skapa en detaljerad spelspecifikation för featuren '{mock_github_issue['title']}', baserat på följande analys:\n---\n{json.dumps(feature_analysis, indent=2, ensure_ascii=False)}\n---",
         expected_output=f"En sökväg till den skapade MD-filen: '{spec_file_path_str}'",
         agent=speldesigner.agent
     )
@@ -128,10 +132,9 @@ async def test_full_lifecycle():
     print(f"Teamets slutrapport:\n{result}")
 
     if result and "pull" in result.lower() and "github.com" in result.lower():
-        print_success(f"Testet slutfördes och en Pull Request-länk genererades!")
+        print_success("Testet slutfördes och en Pull Request-länk genererades!")
     else:
-        print(f"❌ Testet slutfördes, men outputen verkar inte vara en Pull Request-länk. Kontrollera loggen för fel.")
-
+        print(f"❌ Testet slutfördes, men outputen verkar inte vara en Pull Request-länk.")
 
 if __name__ == "__main__":
     asyncio.run(test_full_lifecycle())

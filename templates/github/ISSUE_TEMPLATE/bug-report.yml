@@ -1,233 +1,178 @@
 name: 🐛 Bug Report (AI-Team)
-description: Rapportera en bugg som kommer att analyseras och prioriteras av vårt AI-team
+description: Report a bug that our AI team will investigate and fix
 title: "[BUG] "
-labels: ["bug", "ai-team"]
+labels: ["bug", "ai-team", "triage"]
 assignees: []
 
 body:
   - type: markdown
     attributes:
       value: |
-        ## 🤖 AI-Team Bug Report
+        ## AI-Team Bug Investigation
         
-        Denna buggrapport kommer att analyseras av vårt AI-team för:
+        Our AI quality assurance team will investigate this bug:
         
-        1. **Severity Assessment** - Hur kritisk är buggen?
-        2. **Root Cause Analysis** - Vilken agent/komponent behöver fixa detta?
-        3. **Automated Assignment** - Tilldela till rätt specialist-agent
-        4. **Fix Coordination** - Koordinera fix och testing
+        - **🔍 QA-Testare** analyzes from user perspective
+        - **⚡ Kvalitetsgranskare** checks for technical issues
+        - **💻 Utvecklare** identifies and fixes the problem
+        - **🧪 Testutvecklare** prevents regression
         
-        Tack för att du hjälper oss förbättra DigiNativa! 🚀
+        Please provide detailed information to help us reproduce and fix the issue quickly!
 
   - type: input
     id: bug_summary
     attributes:
-      label: 🐛 Kort Buggbeskrivning
-      description: En mening som sammanfattar problemet
-      placeholder: "t.ex. Framstegsindikator visar fel procent efter att ha slutfört modul 3"
+      label: Bug Summary
+      description: Brief description of the problem
+      placeholder: "Progress dashboard shows incorrect completion percentage"
     validations:
       required: true
 
   - type: dropdown
-    id: user_impact
+    id: severity
     attributes:
-      label: 👤 Påverkan på Användare
-      description: Vem och hur påverkas av denna bugg?
+      label: Severity Level
+      description: How severely does this impact the user experience?
       options:
-        - Kritisk - Hindrar Anna från att använda kärnfunktionalitet
-        - Hög - Skapar frustration men workaround finns
-        - Medium - Mindre problem som påverkar upplevelsen
-        - Låg - Kosmetiskt problem som inte påverkar funktionalitet
-    validations:
-      required: true
-
-  - type: dropdown
-    id: frequency
-    attributes:
-      label: 🔄 Hur ofta uppstår problemet?
-      options:
-        - Alltid - Reproducerbar varje gång
-        - Ofta - Händer i >50% av försöken
-        - Ibland - Intermittent problem
-        - Sällan - Svår att reproducera
-        - En gång - Hände bara en gång
+        - 🚨 Critical (app unusable, data loss, security issue)
+        - 🔥 High (major feature broken, significant UX impact)
+        - ⚠️ Medium (feature partially working, minor UX issues)  
+        - ℹ️ Low (cosmetic issues, edge cases)
     validations:
       required: true
 
   - type: textarea
     id: steps_to_reproduce
     attributes:
-      label: 🔍 Steg för att Reproducera
-      description: Beskriv exakt hur man får fram buggen
+      label: Steps to Reproduce
+      description: Detailed steps to recreate the bug
       placeholder: |
-        1. Gå till...
-        2. Klicka på...
-        3. Fyll i...
-        4. Se fel...
-        
-        Exempel:
-        1. Logga in som Anna
-        2. Slutför Modul 2: "Strategisk planering"
-        3. Navigera till "Min Framsteg" sidan
-        4. Framstegsindikator visar 45% istället för förväntade 67%
-      render: markdown
+        1. Log in as Anna (public sector user)
+        2. Navigate to progress dashboard
+        3. Complete one learning module
+        4. Refresh the page
+        5. Observe incorrect percentage shown
     validations:
       required: true
 
   - type: textarea
     id: expected_behavior
     attributes:
-      label: ✅ Förväntat Beteende
-      description: Vad skulle ha hänt istället?
-      placeholder: |
-        Beskriv det korrekta beteendet du förväntade dig.
-        
-        Exempel:
-        Framstegsindikator skulle visa 67% (2 av 3 moduler slutförda) och visa "Modul 1: ✅ Slutförd, Modul 2: ✅ Slutförd, Modul 3: ⏳ Pågående"
-      render: markdown
+      label: Expected Behavior
+      description: What should happen instead?
+      placeholder: "Progress should show 25% completion after finishing one of four modules"
     validations:
       required: true
 
   - type: textarea
     id: actual_behavior
     attributes:
-      label: ❌ Faktiskt Beteende
-      description: Vad hände istället?
-      placeholder: |
-        Beskriv exakt vad som händer nu.
-        
-        Exempel:
-        Framstegsindikator visar 45% och visar "Modul 1: ✅ Slutförd, Modul 2: ⏳ Pågående, Modul 3: ⬜ Ej påbörjad" trots att Modul 2 är slutförd.
-      render: markdown
-    validations:
-      required: true
-
-  - type: textarea
-    id: environment
-    attributes:
-      label: 🖥️ Miljöinformation
-      description: Vilken miljö använder du?
-      placeholder: |
-        - **Browser:** Chrome 120.0.0.0
-        - **OS:** Windows 11
-        - **Skärmstorlek:** Desktop (1920x1080) / Mobile (iPhone 14)
-        - **URL:** https://diginativa.netlify.app/progress
-        - **Användartyp:** Anna (offentlig förvaltare)
-        - **Session längd:** 8 minuter in i spelet
-      render: markdown
+      label: Actual Behavior  
+      description: What actually happens?
+      placeholder: "Progress shows 0% completion despite completing module"
     validations:
       required: true
 
   - type: dropdown
-    id: design_principle_violation
+    id: user_type
     attributes:
-      label: 🎯 Bryter detta mot våra Design Principles?
-      description: Vilken av våra 5 principles påverkas negativt?
+      label: Affected User Type
+      description: Which user persona experiences this bug?
       options:
-        - Pedagogik Framför Allt - Hindrar lärande eller skapar förvirring
-        - Policy till Praktik - Gör abstrakt eller svårförståelig
-        - Respekt för Tid - Slösar Annas tid eller skapar onödiga steg
-        - Helhetssyn - Bryter systemförståelse eller kopplingar
-        - Intelligens, Inte Infantilisering - Känns barnsligt eller nedlåtande
-        - Ingen specifik principle påverkad
-        - Osäker
+        - Anna (Offentlig förvaltare - primary user)
+        - Erik (IT-chef - technical user)
+        - Margareta (Kommunchef - decision maker)
+        - David (Handläggare - frontline user)
+        - All user types
+        - Unknown/Not specific
+    validations:
+      required: true
 
-  - type: textarea
-    id: screenshots
+  - type: checkboxes
+    id: design_principles_impacted
     attributes:
-      label: 📸 Screenshots/Videos
-      description: Visa problemet visuellt (dra och släpp bilder här)
-      placeholder: |
-        Bifoga screenshots eller screen recordings som visar:
-        - Vad du ser nu (buggen)
-        - Vad du förväntade dig att se
-        - Felmeddelanden eller konsol-errors
-        
-        Tips: Du kan dra och släppa bilder direkt i detta fält!
+      label: Design Principles Impact
+      description: Which design principles does this bug violate?
+      options:
+        - label: "🎓 **Pedagogik Framför Allt** - Impacts learning effectiveness"
+        - label: "🌉 **Policy till Praktik** - Breaks practical application"
+        - label: "⏰ **Respekt för Tid** - Wastes user's time or creates delays"
+        - label: "🔗 **Helhetssyn** - Breaks system understanding"
+        - label: "🎯 **Intelligens** - Makes system seem unreliable/unprofessional"
+
+  - type: input
+    id: environment_browser
+    attributes:
+      label: Browser & Version
+      description: Which browser and version?
+      placeholder: "Chrome 119.0.6045.105, Firefox 119.0, Safari 17.0"
+    validations:
+      required: true
+
+  - type: input
+    id: environment_os
+    attributes:
+      label: Operating System
+      description: What OS are you using?
+      placeholder: "Windows 11, macOS Sonoma 14.1, Ubuntu 22.04"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: device_type
+    attributes:
+      label: Device Type
+      description: What device are you using?
+      options:
+        - Desktop/Laptop
+        - Mobile Phone
+        - Tablet
+        - Multiple devices (describe in additional info)
+    validations:
+      required: true
 
   - type: textarea
     id: console_errors
     attributes:
-      label: 🔧 Teknisk Information
-      description: Finns det felmeddelanden i browser console eller andra tekniska detaljer?
+      label: Console Errors (if any)
+      description: Check browser developer tools (F12) for any error messages
       placeholder: |
-        - Console errors (tryck F12 → Console)
-        - Network errors (tryck F12 → Network)
-        - Specifika felmeddelanden
-        - API response codes
+        Open browser dev tools (F12), go to Console tab, reproduce the bug, then copy any error messages here.
         
-        Exempel:
-        ```
-        Uncaught TypeError: Cannot read property 'modules' of undefined
-        at ProgressCalculator.js:23
-        ```
-      render: markdown
+        Example:
+        TypeError: Cannot read property 'progress' of undefined
+        at ProgressDashboard.jsx:42
 
   - type: textarea
-    id: workaround
+    id: additional_info
     attributes:
-      label: 🛠️ Tillfällig Lösning (Workaround)
-      description: Finns det något sätt att komma runt problemet just nu?
+      label: Additional Information
+      description: Screenshots, network conditions, or other relevant details
       placeholder: |
-        Exempel:
-        - Uppdatera sidan och problemet försvinner tillfälligt
-        - Använda inkognito-läge fungerar
-        - Stänga av browser extensions hjälper
-        - Inget fungerande workaround funnet
-
-  - type: dropdown
-    id: blocking_severity
-    attributes:
-      label: 🚧 Blockerar detta din användning?
-      options:
-        - Ja, kan inte fortsätta använda DigiNativa
-        - Delvis, kan använda andra delar men detta är viktigt
-        - Nej, men det är irriterande
-        - Nej, märktes bara av tillfällighet
-
-  - type: checkboxes
-    id: additional_context
-    attributes:
-      label: 📋 Ytterligare Kontext
-      options:
-        - label: Detta hände efter en uppdatering/ny release
-        - label: Problemet finns bara på mobila enheter
-        - label: Problemet finns bara på desktop
-        - label: Andra användare rapporterat samma problem
-        - label: Första gången jag använder denna funktionalitet
-        - label: Har fungerat innan men slutade plötsligt
-
-  - type: textarea
-    id: business_impact
-    attributes:
-      label: 💼 Påverkan på Arbete/Lärande
-      description: Hur påverkar denna bugg Annas (eller din) faktiska arbete eller lärande?
-      placeholder: |
-        Exempel:
-        - Anna kan inte se sin framsteg vilket gör henne osäker på om hon lärt sig tillräckligt
-        - Minskar motivationen att fortsätta med spelet
-        - Skapar otydlighet om vad som återstår att lära
-        - Påverkar inte direkt arbetet men skapar frustration
+        - Screenshots or screen recordings
+        - Network connection quality (slow/fast/intermittent)
+        - Frequency (always happens / sometimes / rarely)
+        - Workarounds you've found
+        - Related issues or patterns
 
   - type: markdown
     attributes:
       value: |
         ---
         
-        ## 🤖 AI-Team Bug Process
+        ## Bug Fixing Process
         
-        När du submitterar denna buggrapport kommer vårt AI-team att:
+        1. **Triage** - QA team prioritizes based on severity and impact
+        2. **Investigation** - AI agents analyze logs and reproduce issue
+        3. **Root Cause Analysis** - Technical team identifies underlying problem
+        4. **Fix Development** - Code solution with proper testing
+        5. **Quality Assurance** - Verify fix and prevent regression
+        6. **Deployment** - Release fix to production
         
-        1. **Automated Triage** - Severity assessment och prioritering
-        2. **Root Cause Analysis** - Identifiera vilket system/agent som påverkas
-        3. **Agent Assignment** - Tilldela till rätt specialist (Utvecklare, QA-Testare, etc.)
-        4. **Fix Coordination** - Koordinera bugfix och verifiering
-        5. **Progress Updates** - Automatiska uppdateringar i denna issue
+        **Expected resolution time:**
+        - 🚨 Critical: Within 24 hours
+        - 🔥 High: 2-3 days  
+        - ⚠️ Medium: 1 week
+        - ℹ️ Low: Next maintenance cycle
         
-        ### 🎯 Förväntad Resolution Time
-        - **Kritisk:** 24 timmar
-        - **Hög:** 3-5 dagar  
-        - **Medium:** 1-2 veckor
-        - **Låg:** Nästa release cykel
-        
-        Tack för din buggrapport! Du hjälper oss göra DigiNativa bättre för Anna och alla andra användare. 🚀
+        Thank you for helping us improve DigiNativa's quality! 🐛➡️✨

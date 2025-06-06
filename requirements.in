@@ -1,0 +1,11 @@
+# Toppnivå-beroenden för DigiNativa AI-Team
+crewai==0.28.8
+langchain-anthropic
+fastapi
+uvicorn
+PyGithub
+gitpython
+selenium
+python-dotenv
+pytest
+pytest-asyncio
