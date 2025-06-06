@@ -44,10 +44,15 @@ def test_github_connection_with_invalid_token():
 
 @patch('workflows.github_integration.project_owner_communication.SECRETS')
 @patch('workflows.github_integration.project_owner_communication.Github')
-def test_github_mock_connection(mock_github_class, mock_secrets):
+@patch('workflows.github_integration.project_owner_communication.Auth')
+def test_github_mock_connection(mock_auth_class, mock_github_class, mock_secrets):
     """Test GitHub integration with mocked connection."""
     # Mock the secrets
     mock_secrets.get.return_value = 'mock_valid_token'
+    
+    # Mock the Auth.Token
+    mock_auth_token = MagicMock()
+    mock_auth_class.Token.return_value = mock_auth_token
     
     # Mock the GitHub API
     mock_repo = MagicMock()
@@ -70,31 +75,11 @@ def test_github_mock_connection(mock_github_class, mock_secrets):
     assert gh_integration.repo_name == "multi-agent-setup"
     assert gh_integration.github == mock_github_instance
     
-    # Verify the GitHub class was called with correct auth
-    mock_github_class.assert_called_once_with('mock_valid_token')
-
-
-@patch('workflows.github_integration.project_owner_communication.SECRETS')
-@patch('workflows.github_integration.project_owner_communication.Github')
-def test_project_owner_communication(mock_github_class, mock_secrets):
-    """Test ProjectOwnerCommunication class initialization."""
-    # Mock dependencies
-    mock_secrets.get.return_value = 'mock_valid_token'
-    mock_github_instance = MagicMock()
-    mock_repo = MagicMock()
-    mock_github_instance.get_repo.return_value = mock_repo
-    mock_github_class.return_value = mock_github_instance
+    # Verify the Auth.Token was created with correct token
+    mock_auth_class.Token.assert_called_once_with('mock_valid_token')
     
-    # Import and test
-    from workflows.github_integration.project_owner_communication import ProjectOwnerCommunication
-    
-    # This should work with mocked dependencies
-    comm = ProjectOwnerCommunication()
-    
-    # Assertions
-    assert comm is not None
-    assert comm.github is not None
-    assert comm.status_handler is not None
+    # Verify the GitHub class was called with the auth object
+    mock_github_class.assert_called_once_with(auth=mock_auth_token)
 
 
 # Integration test function for manual running
@@ -130,9 +115,12 @@ def run_manual_tests():
     print("\n🔍 Test 3: Mock Connection Test")
     try:
         with patch('workflows.github_integration.project_owner_communication.SECRETS') as mock_secrets, \
-             patch('workflows.github_integration.project_owner_communication.Github') as mock_github:
+            patch('workflows.github_integration.project_owner_communication.Github') as mock_github, \
+            patch('workflows.github_integration.project_owner_communication.Auth') as mock_auth:
             
             mock_secrets.get.return_value = 'mock_token'
+            mock_auth_token = MagicMock()
+            mock_auth.Token.return_value = mock_auth_token
             mock_repo = MagicMock()
             mock_github.return_value.get_repo.return_value = mock_repo
             

@@ -56,7 +56,8 @@ class GitHubIntegration:
         self.github_token = SECRETS.get("github_token")
         if not self.github_token or self.github_token.startswith("[YOUR_"):
             raise ValueError("GitHub token not configured. Set GITHUB_TOKEN in .env file")
-        
+        # NOTE: PyGithub v2.0+ requires Auth objects instead of direct token strings
+        # This provides better security and API separation       
         if Auth is not None:
             auth = Auth.Token(self.github_token)
             self.github = Github(auth=auth)
