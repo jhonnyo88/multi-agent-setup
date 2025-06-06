@@ -1,5 +1,5 @@
 # multi-agent-setup
-framework for building multi AI-agents devteam
+This is my attempt to set up a development team of AI agents.
 
 # DigiNativa AI-Team
 
@@ -324,22 +324,7 @@ Try new AI models, frameworks, or coordination patterns and share your results.
 
 ### Community Resources
 
-- **📊 Metrics Dashboard:** Track how our AI team performs over time
-- **🎥 Development Videos:** Watch our AI team build features in real-time  
-- **💬 Discord Community:** Chat with other AI team builders
-- **📰 Monthly Updates:** Progress reports and lessons learned
-
-### Learning from Others
-
-**Successful Adaptations:**
-- **E-commerce Team:** AI team building Shopify-style e-commerce platform
-- **Mobile Team:** React Native development with AI pair programming
-- **SaaS Team:** B2B platform development with AI-assisted architecture
-
-**Research Collaborations:**
-- **Academic Partnerships:** University research on AI software development
-- **Industry Studies:** Enterprise adoption of AI development teams
-- **Open Source Metrics:** Community insights on AI team effectiveness
+TBD
 
 ---
 
