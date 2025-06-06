@@ -10,6 +10,7 @@ from typing import Type
 from langchain_core.tools import BaseTool
 from pydantic import BaseModel, Field
 import os
+from pathlib import Path
 
 from config.settings import PROJECT_ROOT
 

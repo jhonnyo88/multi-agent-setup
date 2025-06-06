@@ -21,7 +21,7 @@ import json
 
 # Ny, korrekt rad:
 from langchain_core.tools import BaseTool
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, AliasChoices
 from langchain_anthropic import ChatAnthropic
 
 # Importera relevanta konstanter från projektets inställningar
@@ -36,7 +36,11 @@ class DesignReviewInput(BaseModel):
 
 class AcceptanceCriteriaInput(BaseModel):
     """Input för AcceptanceCriteriaValidatorTool."""
-    acceptance_criteria: List[str] = Field(..., description="En lista med acceptanskriterier som ska valideras.")
+    acceptance_criteria: List[str] = Field(
+        ..., 
+        description="En lista med acceptanskriterier som ska valideras.",
+        validation_alias=AliasChoices('acceptance_criteria', 'criteria_list', 'criteria')
+    )
 
 # --- Specialiserade Verktyg ---
 
