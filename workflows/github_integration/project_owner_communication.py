@@ -61,10 +61,38 @@ class GitHubIntegration:
         if Auth is not None:
             auth = Auth.Token(self.github_token)
             self.github = Github(auth=auth)
-        else:
-            # Fallback for older PyGithub versions
-            self.github = Github(self.github_token)
-        self.status_handler = StatusHandler()
+        try:
+            # Använd alltid den moderna Auth-metoden
+            auth = Auth.Token(self.github_token)
+            
+            # Här adresserar vi din User-Agent-hypotes.
+            # Även om det sällan behövs kan du specificera en egen User-Agent så här:
+            self.github = Github(
+                auth=auth,
+                user_agent="DigiNativa-AI-Team/1.0" # Bra praxis att ha en egen User-Agent
+            )
+            
+            # Verifiera anslutningen genom att hämta användarinformation
+            authenticated_user = self.github.get_user()
+            print(f"✅ GitHub authentication successful for user: {authenticated_user.login}")
+            
+            # Repository-konfiguration
+            self.repo_owner = GITHUB_CONFIG["ai_team_repo"]["owner"]
+            self.repo_name = GITHUB_CONFIG["ai_team_repo"]["name"]
+            self.repo = self.github.get_repo(f"{self.repo_owner}/{self.repo_name}")
+            
+            print(f"✅ GitHub integration initialized for repository: {self.repo.full_name}")
+
+        except GithubException as e:
+            if e.status == 401:
+                print("❌ GitHub API error: 401 Bad Credentials.")
+                print("   Detta kvarstår trots modern auth. Dubbelkolla att din token har 'repo'-behörigheter.")
+            else:
+                print(f"❌ GitHub API error: {e.status} - {e.data.get('message', 'No message')}")
+            raise  # Återkasta felet efter att ha loggat det
+        except Exception as e:
+            print(f"❌ An unexpected error occurred during GitHub initialization: {e}")
+            raise
         
         # Repository configuration
         self.repo_owner = GITHUB_CONFIG["ai_team_repo"]["owner"]
