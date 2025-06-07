@@ -52,6 +52,7 @@ state/logs/
 monitoring/reports/
 *.log
 reports/
+docs/specs/
 
 # Secrets (never commit these!)
 .env
