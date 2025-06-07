@@ -1,81 +1,38 @@
-# Project Owner's Guide to Managing Your AI Development Team
+# Project Owner's Guide to Managing Your AI Development Team (Priority Queue System)
 
 *A comprehensive guide for project owners who want to understand how to direct and communicate with the DigiNativa AI-Team*
 
 ## 🎯 Overview: How to Direct Your AI Team
 
-As a project owner, you work with a fully autonomous AI team that can develop features from idea to finished implementation. The team follows your directives but works independently between your decision points.
+As a project owner, you work with a fully autonomous AI team that can develop features from idea to finished implementation. The team follows a **Priority Queue** - a smart priority system that automatically selects the next feature based on your prioritizations.
 
 ### Your Responsibility as Project Owner
 
-**Strategic Planning**: Decide which features to build and in what order  
+**Feature Prioritization**: Decide which features are most important via GitHub Issues  
+**Dependency Management**: Specify if features depend on each other  
 **Quality Approval**: Review and approve/reject completed features  
-**Course Corrections**: Provide feedback when the team needs to change direction
+**Course Corrections**: Change priority or provide feedback at any time
 
 ### AI Team's Responsibility
 
+**Intelligent Prioritization**: Automatically selects next feature based on priority + dependencies  
 **Technical Implementation**: Build everything from UX design to code and tests  
 **Quality Assurance**: Follow all technical standards and design principles  
 **Continuous Reporting**: Keep you updated on progress and problems
 
 ---
 
-## 📋 Phase 1: Plan Your Project (Roadmap)
+## 📋 Phase 1: Create and Prioritize Features
 
-### How to Create Your Plan
+### How to Create a Feature Request
 
-#### 1. Define Your Features in roadmap.md
-Create a file called `docs/dna/roadmap.md` where you list all features you want:
+#### 1. Go to GitHub Issues
 
-```markdown
-# My Project Plan
-
-## Current Sprint (ongoing work)
-- [ ] Feature 1: User authentication (Priority: High)
-- [ ] Feature 2: Basic game mechanics (Priority: High)
-
-## Next Sprint (planned)  
-- [ ] Feature 3: Progress reporting (Priority: Medium)
-- [ ] Feature 4: Mobile optimization (Priority: Medium)
-
-## Future features (wishlist)
-- [ ] Feature 5: Advanced analytics (Priority: Low)
-```
-
-#### 2. Set Priorities
-
-**High Priority**: Must be done first, blocks other work  
-**Medium Priority**: Important features that can wait  
-**Low Priority**: Nice-to-have for the future
-
-#### 3. Describe Dependencies
-If certain features must be done before others, write it clearly:
-
-```markdown
-- Feature 3 requires Feature 1 (authentication) to be completed first
-- Feature 4 can be done in parallel with other features
-```
-
-#### What Happens Next?
-
-✅ AI team automatically reads your roadmap  
-✅ Project Manager selects next feature based on priority and dependencies  
-✅ You get notification when team starts working on each feature
-
----
-
-## 🎪 Phase 2: Communicate Feature Requests (GitHub Issues)
-
-### How to Order Features
-
-#### 1. Create a GitHub Issue
-
-- Go to your project's GitHub repository
+- Open your project's GitHub repository
 - Click "New Issue" → "Feature Request"
 - Fill in the structured template
 
 #### 2. Describe Your Feature Clearly
-Use this structure:
 
 ```markdown
 Title: Add user registration
@@ -91,22 +48,61 @@ Acceptance Criteria:
 - [ ] Works on mobile and desktop
 ```
 
-#### 3. Set Priority and Timeline
+#### 3. Set Priority (IMPORTANT!)
 
-- Select priority level in template
-- Indicate if urgent or can wait
-- Describe any deadlines
+Select priority level in template:
+
+**P0 - Critical**: Must be done immediately, blocks other work  
+**P1 - High**: Important features for current focus  
+**P2 - Medium**: Improvements that can wait  
+**P3 - Low**: Future wishlist items
+
+#### 4. Specify Dependencies (if relevant)
+
+If this feature requires other features to be completed first:
+
+```markdown
+Dependencies: #123, #124
+```
+
+or
+
+```markdown
+Depends on: User authentication (#123) to be completed first
+```
 
 ### What Happens Next?
 
-Within 24 hours you get a response from the AI team that looks like this:
+The AI team's Priority Queue works like this:
+
+```
+GitHub Issues Repository = AI Team's Priority Queue
+
+[P0] Critical security fix (#125) ← Next to do
+[P1] User registration (#123) ← Dependencies clear  
+[P1] Progress reporting (#124) ← Waiting for #123
+[P2] Mobile optimization (#126) ← Can be done anytime
+[P3] Advanced analytics (#127) ← Future feature
+```
+
+The AI team automatically selects:
+
+✅ Highest priority first (P0 > P1 > P2 > P3)  
+✅ Only features where all dependencies are complete  
+✅ Skips features that are already being analyzed
+
+---
+
+## 🤖 Phase 2: AI Team's Automatic Analysis
+
+### Within 24 Hours You Get Automatic Response
 
 ```markdown
 🤖 AI-Team Analysis Complete
 
 ✅ RECOMMENDATION: APPROVED
 💭 Reasoning: Feature aligns with project goals and 
-   is technically feasible
+   is technically feasible within our architecture
 
 📊 Planning:
 - Estimated stories: 4
@@ -115,61 +111,90 @@ Within 24 hours you get a response from the AI team that looks like this:
 
 🚀 Next steps:
 AI team will now:
-1. Create detailed stories for implementation
-2. Begin development work according to workflow
-3. Report progress continuously
+1. 📋 Create detailed stories for implementation
+2. 🎨 Game Designer creates UX specification
+3. 💻 Developer implements functionality
+4. 🧪 Test Engineer creates automated tests
+5. 🔍 QA Tester validates from Anna's perspective
+
+Expected delivery time: 6 days
 ```
+
+### Possible AI Recommendations
+
+#### ✅ APPROVED
+- Feature starts immediately
+- Story breakdown created automatically
+- Development begins according to plan
+
+#### ❓ NEEDS CLARIFICATION
+- AI team asks specific questions
+- You update Issue description
+- Re-analysis happens automatically
+
+#### ❌ NOT APPROVED
+- Feature doesn't align with project goals
+- Suggestions for alternative approach
+- You can revise and resubmit
 
 ---
 
 ## 🔄 Phase 3: Follow Development Work
 
-### Automatic Reporting
-You receive automatic updates when:
+### Automatic Progress Reporting
 
-- AI team starts working on a new feature
-- Major milestones are reached (design complete, code complete, tests complete)
-- Problems arise that may affect timeline
-- Feature is ready for your approval
-
-### Example Progress Report
+You receive continuous updates:
 
 ```markdown
 🔄 Development Progress - User Registration (#123)
 
 Completed stories:
-✅ UX specification (Game Designer) 
-✅ Backend API (Developer)
-🔄 Frontend components (Developer) - 80% complete
+✅ STORY-123-001: UX specification (Game Designer) 
+✅ STORY-123-002: Backend API (Developer)
+🔄 STORY-123-003: Frontend components (Developer) - 80% complete
 
 Next: QA testing (estimated completion: 2 days)
 Live preview: https://preview-123.netlify.app
+
+AI team's next priority: #124 (Progress Reporting)
 ```
 
-### How to Follow the Work
+### Transparent Workflow
 
-**GitHub Issues**: Check specific features and their progress  
+What you can follow:
+
+**GitHub Issues**: For specific features and stories  
 **Live Previews**: Test features while they're being developed  
-**Automatic Notifications**: Get updates in your email/Slack  
-**Weekly Reports**: Summary of what has happened
+**Automatic Notifications**: Get updates about important milestones  
+**Real-time Status**: See what each AI agent is working on
+
+How the AI team prioritizes:
+
+✅ Checks Priority Queue every time a feature completes  
+✅ Selects next available high-priority feature  
+✅ Respects dependencies automatically  
+✅ Reports what happens next
 
 ---
 
 ## ✅ Phase 4: Approve or Reject Completed Features
 
-### When a Feature is Complete
-You get a notification that looks like this:
+### When a Feature is Ready for Approval
 
 ```markdown
 🎉 Feature ready for approval: User Registration (#123)
 
 ✅ All quality checks passed
-✅ Tested from end-user perspective  
-✅ Follows all design principles
+✅ Tested from end-user perspective (Anna's perspective)
+✅ Follows all 5 design principles  
 ✅ Performance: 95/100 (Lighthouse score)
+✅ Accessibility: 98/100 (WCAG compliance)
 
 🔗 Test yourself: https://preview-123.netlify.app
-📊 Test report: [link to detailed report]
+📊 Test report: [link to detailed QA report]
+
+⚡ AI team's next priority: #124 (Progress Reporting)
+   Will start automatically when you approve this feature.
 
 Please approve or reject this feature.
 ```
@@ -177,140 +202,171 @@ Please approve or reject this feature.
 ### Your Options
 
 #### 🟢 Approve Feature
-
-- Click "Approve" in GitHub Issue
+- Comment "APPROVED" in GitHub Issue
 - Feature is automatically deployed to production
-- AI team continues with next priority
+- AI team picks next feature from Priority Queue
 
 #### 🟡 Request Minor Changes
-
-- Comment on what needs to be adjusted
-- AI team makes changes and returns
-- You get to test again when it's ready
+- Comment specifically what needs adjustment
+- Feature gets "needs-changes" label
+- AI team makes changes and returns for new review
 
 #### 🔴 Reject Feature
-
 - Explain what is wrong or missing
-- AI team analyzes feedback and suggests new approach
-- Major rework is done according to your directives
+- Feature goes back for major rework
+- You can change priority or requirements in Issue description
 
-### Example Feedback
+---
+
+## 🎛️ Flexible Priority Queue Management
+
+### Change Priority Anytime
+
+#### Raise Priority:
+```powershell
+# In GitHub Issue, change label from:
+priority-p2  →  priority-p1
+
+# AI team sees change and adjusts automatically
+```
+
+#### Add Urgent Feature:
+- Create GitHub Issue with "priority-p0"
+- AI team pauses current work (if lower priority)
+- Starts on critical feature immediately
+
+#### Change Dependencies:
+```markdown
+# Update Issue body from:
+Dependencies: #123
+
+# To:
+Dependencies: #123, #124
+# (Now waits for both before starting)
+```
+
+### Live Priority Queue Status
+
+You can always see current queue via GitHub Issues:
 
 ```markdown
-I tested the registration function:
+🎯 Current Priority Queue Status:
 
-✅ Good: Easy to use, fast registration
-✅ Good: Works perfectly on mobile  
-⚠️  Issue: Password requirements are unclear to user
-❌ Problem: Registration form is too long
+🔄 IN PROGRESS:
+- #123: User registration (P1) - 80% complete, delivery tomorrow
 
-Request changes:
-1. Add clear text about password requirements
-2. Simplify form - just email and password is enough
-3. Add "Show password" button
+⏳ READY TO START:
+- #124: Progress reporting (P1) - Waiting for #123
+- #126: Mobile optimization (P2) - No dependencies  
 
-Priority: Medium (not critical but should be fixed)
+🚫 WAITING FOR DEPENDENCIES:
+- #125: Advanced analytics (P1) - Requires #123 + #124
+
+📋 FUTURE:
+- #127: External system integration (P3)
+- #128: Reporting functions (P2)
+```
+
+### Smart Dependency Management
+
+The AI team understands dependencies automatically:
+
+```markdown
+# These formulations all work:
+Dependencies: #123, #124
+Depends on: #123  
+Requires #123 to be completed first
+Must complete #123 and #124 before starting
+Blocked by: #123
 ```
 
 ---
 
-## 🎛️ Advanced Control
+## 📊 Overview and Control Your Project
 
-### Change Priorities Mid-Work
-If you need to change plans:
+### Automatic Project Overview
 
-#### 1. Update roadmap.md
-
-- Move features between sprint categories
-- Change priority levels
-- Add new dependencies
-
-#### 2. Communicate Changes
-
-- Comment in relevant GitHub Issues
-- AI team adapts their work automatically
-- You get confirmation of plan changes
-
-### Handle Urgent Features
-**Critical feature (must be done now):**
-
-- Create GitHub Issue with "Critical Priority"
-- Tag as "urgent"
-- AI team pauses ongoing work and starts immediately
-
-### Quality Control
-You can set specific requirements:
-
-**Performance**: "Must load under 2 seconds"  
-**Accessibility**: "Must work with screen readers"  
-**Security**: "Requires extra security review"  
-**Design**: "Must follow our brand guidelines"
-
----
-
-## 📊 Overview and Reporting
-
-### Weekly Summary
-Every Friday you get an automatic report:
+#### Weekly Report (automatic):
 
 ```markdown
-📈 Weekly Report - AI Team Performance
+📈 Weekly Report - AI Team Priority Queue
 
 Features completed this week: 2
-- ✅ User registration (approved)
-- ✅ Basic game mechanics (approved)
+- ✅ #123: User registration (P1) - approved
+- ✅ #124: Progress reporting (P1) - approved
 
-Ongoing work:
-- 🔄 Progress reporting (75% complete, delivery Monday)
-
-Next week:
-- 📋 Mobile optimization (starting Tuesday)
-- 📋 Push notifications (planned start Thursday)
+Currently in Priority Queue:
+- 🔄 #126: Mobile optimization (P2) - in progress, 60% complete
+- ⏳ #127: Advanced analytics (P1) - ready to start  
+- ⏳ #128: Reporting functions (P2) - ready to start
 
 Team performance:
-- ⚡ Average delivery time: 4.2 days
-- ✅ Quality score: 94/100
-- 🎯 Approval rate: 92%
+- ⚡ Average delivery time: 4.2 days/feature
+- ✅ Approval rate: 92% (directly approved)
+- 🎯 Next week's plan: 2-3 features from P1/P2 queue
 ```
 
-### Project Overview Dashboard
-You get access to a live dashboard showing:
+### Dashboard for Real-time Status
 
-- Current team status (what is each AI agent doing now?)
-- Upcoming deliveries and timelines
-- Quality statistics and trends
-- Budget and resource usage
+```markdown
+🎛️ AI-Team Dashboard (Live)
+
+Current Status:
+👥 Game Designer: Working on UX spec for #126
+💻 Developer: Coding frontend for #126  
+🧪 Test Engineer: Writing tests for #126
+🔍 QA Tester: Waiting for #126 for testing
+⚡ Quality Reviewer: Waiting for code to review
+
+Priority Queue:
+1. #126 (P2) - 60% complete
+2. #127 (P1) - ready to start  
+3. #128 (P2) - ready to start
+4. #129 (P3) - future
+
+Estimated delivery: #126 tomorrow, #127 starts Thursday
+```
 
 ---
 
 ## 🚨 When Something Goes Wrong
 
-### Automatic Problem Handling
-The AI team handles most problems themselves:
+### AI Team Handles Most Issues Themselves
 
-**Technical errors**: Debugging and rework  
-**Quality issues**: Automatic correction  
-**Minor design problems**: Internal coordination
+**Automatic problem solving:**
+
+✅ Technical errors → debugging and rework  
+✅ Quality issues → automatic correction  
+✅ Dependencies blocking → waits until resolved  
+✅ Minor design problems → internal coordination
 
 ### When You Need to Be Involved
-You are contacted only when:
 
-- Problems significantly affect delivery times
-- Technical decisions require your strategic input
-- Budget or resources risk being exceeded
-- Quality problems that the AI team cannot solve themselves
+Escalation to you only occurs for:
 
-### Escalation looks like this:
+⚠️ Deadline risks affecting critical features  
+⚠️ Technical decisions requiring strategic input  
+⚠️ Dependencies that seem to have wrong priority  
+⚠️ Quality problems the AI team cannot solve
+
+### Escalation Example:
 
 ```markdown
-🚨 Escalation needed - Mobile Optimization (#124)
+🚨 Escalation needed - Mobile Optimization (#126)
 
-Problem: Performance requirements cannot be met with current approach
-Impact: 3 days delay, may affect next sprint
-AI team's suggestions: 
-1. Compromise performance for faster delivery
-2. Rework architecture (3 extra days)
-3. Split into smaller parts and deliver incrementally
+Problem: Performance requirements (>90) cannot be met with current approach
+Impact: 
+- 3 days delay on #126
+- May affect start of #127 which depends on this
+
+AI team's suggestions:
+1. Compromise performance (85 score) for faster delivery  
+2. Rework architecture (+3 days, guarantees 95 score)
+3. Split feature: basic function now, optimization later
+
+Priority Queue impact:
+- #127 can start anyway (no dependency)  
+- #128 can be reprioritized to compensate
 
 Your input needed: Which approach do you prefer?
 Decision deadline: Tomorrow 12:00 PM
@@ -318,80 +374,138 @@ Decision deadline: Tomorrow 12:00 PM
 
 ---
 
-## 💡 Tips for Successful AI Team Management
+## 💡 Tips for Effective Priority Queue Management
 
-### Do's ✅
+### Do This ✅
 
-**Be specific**: The clearer the instructions, the better the results  
-**Test early**: Check previews and give feedback quickly  
-**Prioritize hard**: Focus on 2-3 features at a time for best quality  
-**Trust the process**: AI team follows proven quality standards
+#### Set Clear Priorities
+**P0**: Security issues, system crashes, blocking errors  
+**P1**: Core functions users are waiting for  
+**P2**: Improvements that make experience better  
+**P3**: Nice-to-have for the future
 
-### Don'ts ❌
+#### Use Dependencies Smartly
+```markdown
+# Clear dependencies:
+Dependencies: #123 (user auth), #124 (data model)
 
-**Don't micromanage**: Let the team work between your decision points  
-**Don't constantly change requirements**: Let features be completed before new requests  
-**Don't skip testing**: Take time to review before approval  
-**Don't ignore feedback**: AI team learns from your comments
+# Avoid vague dependencies:  
+Dependencies: "when we've fixed the auth system"
+```
+
+#### Change Priority Proactively
+- Raise priority when deadline approaches
+- Lower priority if something is no longer urgent
+- Add P0 for acute problems
+
+#### Approve Features Quickly
+- Test within 24-48 hours when notified
+- Give specific feedback instead of "it doesn't feel right"
+- Approve quickly to keep AI team in flow
+
+### Avoid This ❌
+
+#### Don't Confuse the Priority System
+❌ **Wrong**: All features have P1 (high priority)  
+✅ **Right**: Spread out P0/P1/P2/P3 based on real importance
+
+#### Don't Constantly Change Requirements
+❌ **Wrong**: Change acceptance criteria while feature is developing  
+✅ **Right**: Let ongoing feature complete, create new Issue for changes
+
+#### Don't Create Circular Dependencies
+❌ **Wrong**: #123 depends on #124, #124 depends on #123  
+✅ **Right**: Split features so dependencies go one direction
+
+#### Don't Micromanage the AI Team
+❌ **Wrong**: "Why aren't you starting on #127 instead?"  
+✅ **Right**: Change priority on #127 so AI team selects it automatically
 
 ### Optimal Work Pace
 
-**1-2 features per week**: Sustainable pace for high-quality deliveries  
-**Approvals within 48h**: Keep the flow going with quick decisions  
-**Planning every other week**: Update roadmap regularly
+#### Priority Queue Flow:
+**2-3 P1 features per week**: Stable delivery pace  
+**1 P0 feature per month**: Manageable for acute problems  
+**5-10 P2/P3 in backlog**: Provides planning flexibility
+
+#### Approval Cycle:
+**24-48h feedback**: Keep AI team in flow  
+**Test for real**: Use preview as Anna would  
+**Specific feedback**: "Change X to Y" instead of "it doesn't work"
 
 ---
 
-## 🎯 Conclusion: Simple but Powerful
+## 🎯 Conclusion: Smart and Automatic Management
 
-With this system you get:
+With the Priority Queue system you get:
 
-✅ **Full control** over what is built and when  
-✅ **Automatic quality assurance** according to industry standards  
-✅ **Transparent communication** about progress and problems  
-✅ **Flexible adaptation** when needs change
+✅ **Intelligent prioritization**: AI team always chooses the right feature next  
+✅ **Flexible control**: Change priority anytime via GitHub  
+✅ **Automatic dependency management**: No features start in wrong order  
+✅ **Transparent progress**: See exactly what happens and when  
+✅ **Minimal administration**: System manages itself between your decisions
 
-Your AI team functions as an extension of your own decision-making - it executes your vision with professional quality while you focus on strategy and business development.
+### Your Job as Project Owner:
+
+📝 **Create GitHub Issues** with clear priority  
+🔍 **Test and approve** completed features  
+🎯 **Adjust priority** when needs change  
+📊 **Follow progress** via automatic reports
+
+**The AI team handles the rest** - from technical analysis to finished code! 🚀
 
 ---
 
-## 📊 Visual Workflow Overview
+## 📊 Visual Priority Queue Flow
 
 ```mermaid
 graph TD
-    A[Project Owner Creates Roadmap] --> B[AI Team Reads Roadmap]
-    B --> C[Project Owner Creates GitHub Issue]
-    C --> D[AI Team Analyzes Request]
-    D --> E{Analysis Result}
+    subgraph "Project Owner Actions"
+        A[Create GitHub Issue] 
+        B[Set Priority P0-P3]
+        C[Specify Dependencies]
+        L[Test & Review Feature]
+        M{Make Approval Decision}
+        N[Change Priority Anytime]
+    end
     
-    E -->|Approve| F[AI Team Creates Stories]
-    E -->|Clarify| G[Request More Information]
-    E -->|Reject| H[Explain Why Rejected]
+    subgraph "AI Team Priority Queue" 
+        D[Analyze All Open Issues]
+        E[Select Highest Priority Available]
+        F[Check Dependencies Clear]
+        G[Start Development]
+        H[Progress Updates]
+        I[Feature Complete]
+    end
     
-    F --> I[Development Work Begins]
-    I --> J[Automatic Progress Updates]
-    J --> K[Feature Complete]
-    K --> L[Project Owner Testing]
-    L --> M{Approval Decision}
+    A --> B
+    B --> C
+    C --> D
+    D --> E
+    E --> F
+    F --> G
+    G --> H
+    H --> I
+    I --> L
+    L --> M
     
-    M -->|Approve| N[Deploy to Production]
-    M -->|Minor Changes| O[AI Team Adjusts]
-    M -->|Reject| P[Major Rework]
+    M -->|✅ Approve| O[Deploy & Pick Next from Queue]
+    M -->|🔄 Changes| P[Make Adjustments]
+    M -->|❌ Reject| Q[Major Rework]
     
-    O --> L
+    N --> D
     P --> I
-    N --> Q[Continue with Next Feature]
-    G --> C
-    H --> C
-    Q --> C
+    Q --> G
+    O --> D
+    
+    style A fill:#e3f2fd,color:#000
+    style B fill:#e8f5e8,color:#000
+    style C fill:#fff3e0,color:#000
+    style D fill:#f3e5f5,color:#000
+    style E fill:#f3e5f5,color:#000
+    style F fill:#f3e5f5,color:#000
+    style L fill:#e3f2fd,color:#000
+    style M fill:#e3f2fd,color:#000
+    style O fill:#c8e6c9,color:#000
+    style N fill:#ffebee,color:#000
 ```
-
-## 🔧 GitHub Templates Integration
-
-This guide works seamlessly with the GitHub Issue templates:
-
-- **Feature Request Template**: Creates structured requests AI team can understand
-- **Bug Report Template**: Reports issues that need AI team attention  
-- **Feature Approval Template**: Provides structured feedback on completed work
-
-The AI team automatically processes these templates and responds with structured analysis and progress updates.

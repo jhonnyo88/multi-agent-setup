@@ -104,10 +104,6 @@
 **Syfte:** Avgränsar första leverans
 **DigiNativa MVP:** Grundläggande spelmekanik med pedagogisk effekt
 
-### 8. roadmap.md
-**Syfte:** Långsiktig utvecklingsplan
-**Struktur:** Features prioriterade och tidsatta
-
 ## 🔄 ARBETSFLÖDEN
 
 ### Story Lifecycle (6 steg)

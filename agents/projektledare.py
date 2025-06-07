@@ -23,6 +23,7 @@ DEPENDENCIES:
 import os
 import json
 import asyncio
+import re
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any
 from pathlib import Path
@@ -307,6 +308,240 @@ class ProjektledareAgent:
             
             return error_analysis
     
+    async def get_next_available_feature(self) -> Optional[Dict[str, Any]]:
+        """
+        Find the highest priority feature that's ready to start.
+        
+        PRIORITY QUEUE LOGIC:
+        1. Get all open feature requests from GitHub
+        2. Sort by priority (P0 > P1 > P2 > P3)
+        3. Return first feature with satisfied dependencies
+        4. Skip features that are already being processed
+        
+        Returns:
+            Next feature to analyze/implement, or None if no work available
+        """
+        try:
+            print("🔍 Scanning priority queue for next available feature...")
+            
+            # Get all open feature requests
+            open_issues = await self.github_comm.github.monitor_new_feature_requests()
+            
+            if not open_issues:
+                print("ℹ️  No open feature requests found")
+                return None
+            
+            # Sort by priority (P0 highest, P3 lowest)
+            prioritized_issues = self._sort_by_priority(open_issues)
+            
+            print(f"📊 Found {len(prioritized_issues)} open features:")
+            for i, issue in enumerate(prioritized_issues[:5]):  # Show top 5
+                priority = self._get_issue_priority(issue)
+                print(f"   {i+1}. #{issue['number']}: {issue['title']} (Priority: {priority})")
+            
+            # Find first issue with satisfied dependencies
+            for issue in prioritized_issues:
+                priority = self._get_issue_priority(issue)
+                
+                # Skip if already has AI analysis (already processed)
+                if await self._has_ai_analysis(issue):
+                    print(f"   ⏭️  #{issue['number']} already analyzed, skipping")
+                    continue
+                
+                # Check dependencies
+                if await self._check_dependencies_satisfied(issue):
+                    print(f"✅ Next available feature: #{issue['number']} ({priority})")
+                    return issue
+                else:
+                    print(f"   ⏳ #{issue['number']} waiting for dependencies")
+            
+            print("ℹ️  No features ready to process (all have unsatisfied dependencies)")
+            return None
+            
+        except Exception as e:
+            print(f"❌ Error getting next feature: {e}")
+            return None
+
+    def _sort_by_priority(self, issues: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Sort issues by priority labels.
+        
+        Priority order: P0 (Critical) > P1 (High) > P2 (Medium) > P3 (Low)
+        Issues without priority labels go to the end.
+        """
+        priority_order = {
+            'P0': 0,  # Critical - must do immediately
+            'P1': 1,  # High - important for current focus
+            'P2': 2,  # Medium - can wait
+            'P3': 3   # Low - future consideration
+        }
+        
+        def get_priority_score(issue):
+            """Get numeric priority score for sorting."""
+            priority = self._get_issue_priority(issue)
+            return priority_order.get(priority, 999)  # 999 = no priority (lowest)
+        
+        return sorted(issues, key=get_priority_score)
+
+    def _get_issue_priority(self, issue: Dict[str, Any]) -> str:
+        """Extract priority from issue labels."""
+        for label in issue.get('labels', []):
+            label_name = label.get('name', '').lower()
+            
+            # Look for priority labels like "priority-p1", "p1", etc.
+            if 'p0' in label_name or 'critical' in label_name:
+                return 'P0'
+            elif 'p1' in label_name or 'high' in label_name:
+                return 'P1'
+            elif 'p2' in label_name or 'medium' in label_name:
+                return 'P2'
+            elif 'p3' in label_name or 'low' in label_name:
+                return 'P3'
+        
+        return 'P?'  # No priority found
+
+    async def _check_dependencies_satisfied(self, issue: Dict[str, Any]) -> bool:
+        """
+        Check if all dependencies for this issue are completed.
+        
+        Dependencies are specified in issue body like:
+        - "Dependencies: #123, #124"
+        - "Depends on: #123"
+        - "Requires: #123 to be completed first"
+        """
+        try:
+            dependencies = self._parse_dependencies(issue.get('body', ''))
+            
+            if not dependencies:
+                # No dependencies = ready to start
+                return True
+            
+            print(f"   🔗 Checking {len(dependencies)} dependencies: {dependencies}")
+            
+            for dep_number in dependencies:
+                try:
+                    # Get dependency issue from GitHub
+                    dep_issue = self.github_comm.github.ai_repo.get_issue(dep_number)
+                    
+                    if dep_issue.state != 'closed':
+                        print(f"     ⏳ #{dep_number} still open ({dep_issue.state})")
+                        return False
+                    else:
+                        print(f"     ✅ #{dep_number} completed")
+                        
+                except Exception as e:
+                    print(f"     ⚠️  Could not check dependency #{dep_number}: {e}")
+                    # Assume dependency exists but has issues - block processing
+                    return False
+            
+            print("   ✅ All dependencies satisfied")
+            return True
+            
+        except Exception as e:
+            print(f"   ❌ Error checking dependencies: {e}")
+            return False
+
+    def _parse_dependencies(self, issue_body: str) -> List[int]:
+        """
+        Extract dependency issue numbers from issue body.
+        
+        Looks for patterns like:
+        - Dependencies: #123, #124
+        - Depends on: #123
+        - Requires #123 and #124
+        - Must complete #123 first
+        """
+        if not issue_body:
+            return []
+        
+        # Find all #number patterns in the issue body
+        import re
+        
+        # Look for dependency sections first
+        dependency_patterns = [
+            r'dependencies?[:\s]+([#\d,\s]+)',
+            r'depends?\s+on[:\s]+([#\d,\s]+)',
+            r'requires?[:\s]+([#\d,\s]+)',
+            r'blocked\s+by[:\s]+([#\d,\s]+)'
+        ]
+        
+        dependencies = []
+        
+        # Try to find dependency sections
+        for pattern in dependency_patterns:
+            matches = re.findall(pattern, issue_body, re.IGNORECASE)
+            for match in matches:
+                # Extract all numbers from the match
+                numbers = re.findall(r'#?(\d+)', match)
+                dependencies.extend([int(num) for num in numbers])
+        
+        # If no dependency sections found, look for any #number mentions
+        # but be more conservative (only in first part of issue)
+        if not dependencies:
+            first_section = issue_body[:500]  # First 500 chars only
+            if 'depend' in first_section.lower() or 'require' in first_section.lower():
+                numbers = re.findall(r'#(\d+)', first_section)
+                dependencies.extend([int(num) for num in numbers])
+        
+        # Remove duplicates and return
+        return list(set(dependencies))
+
+    async def _has_ai_analysis(self, issue: Dict[str, Any]) -> bool:
+        """
+        Check if an issue already has AI analysis comments.
+        
+        This prevents processing the same issue multiple times.
+        """
+        try:
+            # This logic should already exist in github integration
+            # We'll reuse it here
+            github_issue = issue.get('github_issue')
+            if not github_issue:
+                # Try to get the issue from GitHub
+                issue_number = issue.get('number')
+                github_issue = self.github_comm.github.ai_repo.get_issue(issue_number)
+            
+            return await self.github_comm.github._check_for_ai_analysis(github_issue)
+            
+        except Exception as e:
+            print(f"   ⚠️  Could not check for existing analysis: {e}")
+            return False  # Assume not processed to be safe
+
+    async def monitor_and_process_next_feature(self) -> Optional[Dict[str, Any]]:
+        """
+        Main workflow: Find next priority feature and process it completely.
+        
+        This replaces the old roadmap-based workflow with priority queue logic.
+        
+        Returns:
+            Processed feature data or None if no work available
+        """
+        try:
+            print("🚀 Priority Queue: Looking for next feature to process...")
+            
+            # Get next available feature from priority queue
+            next_feature = await self.get_next_available_feature()
+            
+            if not next_feature:
+                print("✅ Priority queue empty - no features ready to process")
+                return None
+            
+            print(f"📋 Processing priority feature: {next_feature['title']}")
+            
+            # Process the feature through complete workflow
+            workflow_result = await self.process_github_feature_and_update(next_feature)
+            
+            if workflow_result.get('github_updated'):
+                print(f"✅ Feature processed and GitHub updated")
+            else:
+                print(f"⚠️  Feature processed but GitHub update failed")
+            
+            return workflow_result
+            
+        except Exception as e:
+            print(f"❌ Error in priority queue processing: {e}")
+            return None
+
     async def create_story_breakdown(self, feature_analysis: Dict[str, Any], github_issue: Dict[str, Any]) -> List[Dict[str, Any]]:
         """
         Break down an approved feature into implementable stories using Claude's reasoning.
@@ -612,35 +847,50 @@ class ProjektledareAgent:
         
     async def monitor_and_process_github_issues(self) -> List[Dict[str, Any]]:
         """
-        Monitor GitHub Issues for new feature requests and process them.
+        Priority Queue Workflow: Process features by priority and dependencies.
         
-        This is the main entry point for the Projektledare to automatically
-        handle feature requests from the project owner.
+        This is the main entry point for automatic feature processing.
+        Now uses priority queue instead of roadmap-based planning.
         
         Returns:
             List of processed feature requests
         """
         try:
-            # Initialize GitHub communication
-            github_comm = ProjectOwnerCommunication()
+            print("🎯 Starting Priority Queue workflow...")
             
-            # Process new feature requests
-            processed_features = await github_comm.process_new_features()
+            processed_features = []
+            
+            # Process features one by one until queue is empty or max limit reached
+            max_features_per_run = 3  # Prevent infinite loops
+            
+            for i in range(max_features_per_run):
+                print(f"\n--- Priority Queue Round {i+1} ---")
+                
+                # Get and process next available feature
+                result = await self.monitor_and_process_next_feature()
+                
+                if result:
+                    processed_features.append(result)
+                    print(f"✅ Processed feature #{result.get('analysis', {}).get('issue_id', 'unknown')}")
+                else:
+                    print("ℹ️  No more features available to process")
+                    break
             
             # Check for human feedback on completed features
-            feedback_items = await github_comm.check_for_approvals()
+            feedback_items = await self.github_comm.check_for_approvals()
             
             # Handle any feedback that requires action
             for feedback in feedback_items or []:
                 await self._handle_project_owner_feedback(feedback)
             
-            print(f"✅ Processed {len(processed_features)} new features")
-            print(f"✅ Handled {len(feedback_items or [])} feedback items")
+            print(f"\n🎉 Priority Queue workflow complete:")
+            print(f"   Processed features: {len(processed_features)}")
+            print(f"   Handled feedback: {len(feedback_items or [])}")
             
             return processed_features
             
         except Exception as e:
-            print(f"❌ Failed to monitor GitHub issues: {e}")
+            print(f"❌ Priority Queue workflow failed: {e}")
             return []
 
     async def _handle_project_owner_feedback(self, feedback: Dict[str, Any]):

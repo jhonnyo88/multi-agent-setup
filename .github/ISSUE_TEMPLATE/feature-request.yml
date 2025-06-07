@@ -103,12 +103,19 @@ body:
       label: Priority Level
       description: How urgent is this feature?
       options:
-        - 🔥 Critical (blocks other work)
-        - 🚀 High (important for next sprint)
-        - 📈 Medium (nice to have soon)
-        - 📋 Low (future consideration)
+        - P0 - Critical (must do immediately)
+        - P1 - High (important for current focus) 
+        - P2 - Medium (can wait)
+        - P3 - Low (future consideration)
     validations:
       required: true
+
+  - type: input
+    id: dependencies
+    attributes:
+      label: Dependencies
+      description: "Other GitHub Issues that must be completed first"
+      placeholder: "#123, #124"
 
   - type: textarea
     id: technical_considerations
