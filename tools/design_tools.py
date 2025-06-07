@@ -25,7 +25,6 @@ import re
 from typing import List, Type, Optional, Dict, Any
 from pathlib import Path
 
-# FIXED: Use correct CrewAI import for tools
 from crewai.tools import BaseTool
 from pydantic import BaseModel, Field
 from langchain_anthropic import ChatAnthropic
@@ -74,6 +73,8 @@ class DesignPrinciplesValidatorTool(BaseTool):
         "Returns scored validation with reasoning for each principle."
     )
     args_schema: Type[BaseModel] = DesignValidationInput
+    claude_llm: Optional[ChatAnthropic] = None
+    principles_cache: Optional[str] = None
     
     def __init__(self):
         super().__init__()
@@ -249,6 +250,8 @@ class AcceptanceCriteriaValidatorTool(BaseTool):
         "with improvement suggestions for unclear criteria."
     )
     args_schema: Type[BaseModel] = AcceptanceCriteriaInput
+    claude_llm: Optional[ChatAnthropic] = None # KORRIGERING: Fältet är tillagt
+
     
     def __init__(self):
         super().__init__()
@@ -366,6 +369,8 @@ class AnnaPersonaValidatorTool(BaseTool):
         "time-efficient, and pedagogically effective learning experiences."
     )
     args_schema: Type[BaseModel] = DesignValidationInput
+    claude_llm: Optional[ChatAnthropic] = None
+    anna_profile: Optional[str] = None
     
     def __init__(self):
         super().__init__()

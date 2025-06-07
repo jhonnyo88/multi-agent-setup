@@ -1,105 +1,131 @@
 """
-DigiNativa AI-Agent: Utvecklare (Full-Stack Arkitekturexpert)
-============================================================
+DigiNativa AI-Agent: Utvecklare (Full-Stack Architecture Expert)
+================================================================
 
 PURPOSE:
-Denna agent är teamets tekniska motor. Den tar emot detaljerade specifikationer
-från Speldesigner-agenten och skriver ren, effektiv och produktionsklar kod
-som exakt matchar kraven. Agenten är specialiserad på React och FastAPI och
-följer slaviskt de arkitektoniska principer som definierats för projektet.
+This agent is the technical engine of the team. It receives detailed 
+specifications from the Speldesigner agent and writes clean, efficient, and 
+production-ready code that exactly matches the requirements. The agent is 
+specialized in React and FastAPI and strictly follows the architectural 
+principles defined for the project.
 
 KEY DEPENDENCIES:
-- `docs/dna/architecture.md`: Agentens bibel. Alla tekniska beslut måste följa detta.
-- `docs/dna/definition_of_done.md`: Sätter kvalitetskraven för den kod som produceras.
-- En specifikationsfil (output från Speldesigner) som input.
+- `docs/dna/architecture.md`: The agent's bible. All technical decisions must follow this.
+- `docs/dna/definition_of_done.md`: Sets the quality requirements for the produced code.
+- A specification file (output from Speldesigner) as input.
 
 ADAPTATION GUIDE:
-🔧 För att anpassa denna agent:
-1.  Byt ut teknisk expertis (React, FastAPI) i `role` och `backstory` för att
-    matcha er teknikstack.
-2.  Justera de "orubbliga reglerna" i backstoryn för att spegla era
-    egna arkitekturprinciper.
+🔧 To adapt this agent:
+1.  Replace technical expertise (React, FastAPI) in `role` and `backstory` to
+    match your tech stack.
+2.  Adjust the "unbreakable rules" in the backstory to reflect your
+    own architectural principles.
 """
 
-from crewai import Agent
+from crewai import Agent, Task, Crew
 from langchain_anthropic import ChatAnthropic
 
-# Projektimporter
-from config.settings import AGENT_CONFIG, SECRETS, TECH_STACK
+from config.agent_config import get_agent_config
+from config.settings import TECH_STACK
 from tools.file_tools import FileReadTool, FileWriteTool
-# TODO: Importera GitTool och ArchitectureValidatorTool när de är skapade
+from tools.dev_tools import GitRepositoryTool
+# We'll create this tool in the next step.
+# from tools.architecture_tools import ArchitectureValidatorTool
 
 class UtvecklareAgent:
+    """
+    The Utvecklare (Developer) agent, responsible for writing code.
+    """
     def __init__(self):
-        # ÄNDRING 1: Metodanropet har bytt namn till `_create_agent` för att vara konsekvent.
+        self.agent_config = get_agent_config("utvecklare")
+        # Note: self.claude_llm is defined within _create_agent via the Agent class property
         self.agent = self._create_agent()
 
-    # ÄNDRING 2: Metoden har döpts om till `_create_agent` och tar `self` som parameter.
     def _create_agent(self) -> Agent:
         """
-        Skapar den interna CrewAI Agent-instansen.
-        Denna agent är programmerad att vara en expert på projektets specifika
-        teknikstack och att följa arkitekturreglerna slaviskt.
+        Creates the internal CrewAI Agent instance.
+        This agent is programmed to be an expert in the project's specific
+        tech stack and to follow architectural rules slavishly.
         """
-        claude_llm = ChatAnthropic(
-            model=AGENT_CONFIG["llm_model"],
-            api_key=SECRETS.get("anthropic_api_key"),
-            temperature=0.0,  # Temperatur 0.0 för att säkerställa att den följer regler exakt
-            max_tokens_to_sample=4000
-        )
-
         return Agent(
-            # Rollen definierar agentens specialisering
-            role=f"Full-Stack Arkitekturexpert ({TECH_STACK['frontend']['framework']} & {TECH_STACK['backend']['framework']})",
-
-            # Målet är extremt tydligt: omvandla spec till kod enligt reglerna.
+            role=f"Full-Stack Architecture Expert ({TECH_STACK['frontend']['framework']} & {TECH_STACK['backend']['framework']})",
             goal="""
-            Omvandla en designspecifikation till felfri, effektiv och produktionsklar kod.
-            Du skriver både frontend-kod i React och backend-kod i FastAPI. Ditt arbete måste
-            vara en perfekt teknisk implementation av den givna specifikationen och följa
-            ALLA arkitektoniska regler utan undantag.
+            Transform a design specification into flawless, efficient, and production-ready code.
+            You write both frontend code in React with TypeScript and backend code in FastAPI. Your work must
+            be a perfect technical implementation of the given specification and follow
+            ALL architectural rules without exception.
             """,
-
-            # Agentens "personlighet" är en direkt spegling av reglerna i architecture.md.
             backstory=f"""
-            Du är en senior full-stack-utvecklare med en passion för kodkvalitet och
-            arkitektonisk renhet. Du är inte en kreativ problemlösare; du är en
-            exceptionell teknisk exekverare. Du läser en specifikation och producerar
-            kod som är en exakt avbild av den.
+            You are a senior full-stack developer with a passion for code quality and
+            architectural purity. You are not a creative problem-solver; you are an
+            exceptional technical executor. You read a specification and produce
+            code that is an exact representation of it.
 
-            Ditt arbete styrs av fyra ORUBBLIGA regler från projektets arkitektur-DNA:
+            Your work is governed by four UNBREAKABLE rules from the project's architecture DNA:
 
-            1.  **Tydlig Separation av Ansvar**: Du arbetar antingen i `/frontend` eller
-                `/backend` för en given uppgift, aldrig båda. Du gör ALDRIG, under några
-                omständigheter, databasanrop direkt från frontend.
+            1.  **Clear Separation of Concerns**: You work either in the `/frontend` or
+                `/backend` directory for a given task, never both at the same time. You NEVER, under any
+                circumstances, make database calls directly from the frontend.
 
-            2.  **API-först (Kontraktet är Kung)**: Du läser API-kontraktet i specifikationen
-                och implementerar det exakt. Du avviker aldrig från de definierade
-                endpoints, request-format eller response-format.
+            2.  **API-First (The Contract is King)**: You read the API contract in the specification
+                and implement it precisely. You never deviate from the defined
+                endpoints, request formats, or response formats.
 
-            3.  **Statslös Backend**: All din backend-kod är 100% statslös. Varje API-anrop
-                är en oberoende transaktion. Du sparar aldrig session-state på servern.
+            3.  **Stateless Backend**: All your backend code is 100% stateless. Each API call
+                is an independent transaction. You never save session state on the server.
 
-            4.  **Enkelhet och Pragmatism (KISS)**: Du skriver den enklaste, mest direkta
-                koden som uppfyller kraven. Du bygger inte för hypotetiska framtida
-                behov. Du lägger inte till onödig komplexitet.
+            4.  **Simplicity and Pragmatism (KISS)**: You write the simplest, most direct
+                code that meets the requirements. You do not build for hypothetical future
+                needs. You do not add unnecessary complexity.
 
-            Om en specifikation är otydlig eller bryter mot dessa regler, stoppar du ditt
-            arbete och rapporterar omedelbart statuskoden `FEL_SPEC_TVETYDIG_U`.
-            All kod du skriver måste uppfylla kraven i Fas 1 av Definition of Done.
+            If a specification is unclear or violates these rules, you stop your work and
+            immediately report the status code `FEL_SPEC_TVETYDIG_U`. All code you write
+            must meet the requirements in Phase 1 of the Definition of Done.
+            You are a master of TypeScript for React and use modern hooks and patterns.
+            You use Tailwind CSS for styling according to the spec.
             """,
-
-            # Dessa verktyg är grundläggande. Vi kommer att lägga till GitTool härnäst.
             tools=[
                 FileReadTool(),
                 FileWriteTool(),
-                # TODO: Lägg till GitTool och ArchitectureValidatorTool
+                GitRepositoryTool(),
+                # ArchitectureValidatorTool() # To be added in the next step
             ],
-            llm=claude_llm,
+            llm=ChatAnthropic(model=self.agent_config.llm_model, temperature=self.agent_config.temperature),
             verbose=True,
-            allow_delegation=False, # En utvecklare delegerar inte kodskrivandet
-            max_iterations=AGENT_CONFIG["max_iterations"]
+            allow_delegation=False, # A developer does not delegate coding
+            max_iterations=self.agent_config.max_iterations
         )
-    
+
+    def implement_feature(self, specification_file: str, story_id: str):
+        """
+        Reads a specification and implements the feature.
+        """
+        implementation_task = Task(
+            description=f"""
+            Read the UX specification from the file located at: '{specification_file}'.
+            Your task is to implement the feature described in the specification.
+
+            Follow these steps meticulously:
+            1. **Read the Spec**: Use the FileReadTool to read the full content of '{specification_file}'.
+            2. **Analyze**: Understand all requirements: frontend components, backend endpoints, and logic.
+            3. **Create Frontend Code**: Write the React/TypeScript code for the frontend component. Save it to a file like `frontend/src/components/{story_id}.tsx`.
+            4. **Create Backend Code**: Write the FastAPI/Python code for the backend endpoint. Save it to a file like `backend/app/api/{story_id}.py`.
+            5. **Validate (Future Step)**: Use ArchitectureValidatorTool to ensure your code follows all rules.
+            6. **Commit Code**: Use the GitRepositoryTool to create a new branch named `feature/{story_id}`, add all your created files, and commit them with the message "feat: Implement feature {story_id}". Do NOT create a pull request.
+            """,
+            expected_output=f"A confirmation that the code for story {story_id} has been implemented, saved to files, and committed to a new git branch named 'feature/{story_id}'.",
+            agent=self.agent
+        )
+
+        # Create and run the crew
+        code_crew = Crew(
+            agents=[self.agent],
+            tasks=[implementation_task],
+            verbose=2
+        )
+        result = code_crew.kickoff()
+        return result
+
 def create_utvecklare_agent() -> UtvecklareAgent:
+    """Factory function to create a developer agent."""
     return UtvecklareAgent()

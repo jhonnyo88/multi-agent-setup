@@ -78,8 +78,8 @@ file_logger = FileOperationLogger()
 
 class FilePathValidator:
     """Validates file paths to prevent security issues."""
-    ALLOWED_READ_PATHS = ["docs/", "config/", "templates/", "reports/", "tests/", "state/", "tools/", "agents/", "workflows/"]
-    ALLOWED_WRITE_PATHS = ["reports/", "state/", "docs/specs/", "backend/", "src/", "tests/fixtures/"]
+    ALLOWED_READ_PATHS = ["docs/", "config/", "templates/", "reports/", "backend/", "frontend/", "tests/", "state/", "tools/", "agents/", "workflows/"]
+    ALLOWED_WRITE_PATHS = ["reports/", "state/", "docs/specs/", "backend/", "frontend/", "src/", "tests/fixtures/"]
     ALLOWED_READ_EXTENSIONS = {'.md', '.txt', '.json', '.yml', '.yaml', '.toml', '.py', '.js', '.ts', '.jsx', '.tsx', '.html', '.css', '.svg', '.csv', '.xml'}
     ALLOWED_WRITE_EXTENSIONS = {'.md', '.txt', '.json', '.yml', '.yaml', '.log', '.csv', '.html', '.svg', '.py', '.tsx', '.js', '.ts'}
     MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024  # 10MB
