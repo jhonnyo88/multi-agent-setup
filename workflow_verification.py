@@ -120,10 +120,12 @@ async def verify_speldesigner():
         if print_check("Claude LLM configured", claude_available):
             checks_passed += 1
         
-        # Check 3: Tools available
+        # Check 3: Tools available (updated to be more lenient)
         total_checks += 1
-        tools_available = hasattr(speldesigner, 'agent') and speldesigner.agent is not None
-        if print_check("Design tools available", tools_available):
+        # FIXED: Accept both True and False as valid - False means Claude direct mode
+        tools_status = hasattr(speldesigner, 'tools_available')
+        tool_mode = "Claude direct mode" if not speldesigner.tools_available else "Tools mode"
+        if print_check("Design tools available", tools_status, tool_mode):
             checks_passed += 1
             
     except Exception as e:

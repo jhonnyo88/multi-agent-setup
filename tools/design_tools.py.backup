@@ -1,15 +1,15 @@
 """
-Enhanced Design Tools for DigiNativa Speldesigner Agent - COMPOSITION BASED
-===========================================================================
+Enhanced Design Tools for DigiNativa Speldesigner Agent - FIXED for CrewAI 0.28.8
+=================================================================================
 
 PURPOSE:
 Specialized tools that give the Speldesigner agent cognitive abilities to validate
 their own specifications against the project's core principles (DNA) and ensure
 all designs meet quality standards before being handed over to development.
 
-COMPOSITION APPROACH:
-Uses composition instead of inheritance to avoid Pydantic v1/v2 conflicts.
-Creates wrapper classes that implement the tool interface without Pydantic complications.
+CREWAI 0.28.8 COMPATIBILITY:
+Updated to work with CrewAI 0.28.8's tool system and error handling.
+Uses fallback imports for different CrewAI versions.
 
 ADAPTATION GUIDE:
 🔧 To adapt these tools:
@@ -24,6 +24,47 @@ import json
 import re
 from typing import List, Type, Optional, Dict, Any
 from pathlib import Path
+from tools.tool_base import UniversalBaseTool as BaseTool
+
+
+# FIXED: CrewAI 0.28.8 compatible imports
+try:
+    # Try newer CrewAI versions first
+    from crewai.tools import BaseTool
+    CREWAI_TOOLS_V2 = True
+    print("✅ Using crewai.tools.BaseTool")
+except ImportError:
+    try:
+        # Try crewai_tools package
+        from crewai_tools import BaseTool
+        CREWAI_TOOLS_V2 = True
+        print("✅ Using crewai_tools.BaseTool")
+    except ImportError:
+        try:
+            # Fallback to LangChain
+            from langchain.tools import BaseTool
+            CREWAI_TOOLS_V2 = False
+            print("⚠️  Using LangChain BaseTool fallback")
+        except ImportError:
+            # Manual implementation as last resort
+            print("❌ No BaseTool found, using manual implementation")
+            from pydantic import BaseModel
+            
+            class BaseTool(BaseModel):
+                """Manual BaseTool implementation for CrewAI 0.28.8"""
+                name: str
+                description: str
+                
+                def _run(self, *args, **kwargs):
+                    raise NotImplementedError("Subclasses must implement _run method")
+                
+                def run(self, *args, **kwargs):
+                    """Run method that CrewAI expects"""
+                    return self._run(*args, **kwargs)
+            
+            CREWAI_TOOLS_V2 = False
+
+from pydantic import BaseModel, Field
 
 # Import configuration and dependencies with error handling
 try:
@@ -39,59 +80,59 @@ except ImportError:
 from config.settings import AGENT_CONFIG, SECRETS, DNA_DIR, PROJECT_ROOT
 from tools.file_tools import read_file
 
-# --- Simple Tool Base Class (No Pydantic) ---
+# --- Input Models for Tools ---
 
-class SimpleTool:
-    """
-    Simple tool base class that avoids Pydantic complications.
-    Uses plain Python classes with composition approach.
-    """
-    def __init__(self, name: str, description: str):
-        self.name = name
-        self.description = description
-    
-    def run(self, *args, **kwargs) -> str:
-        """Public interface method."""
-        return self._run(*args, **kwargs)
-    
-    def _run(self, *args, **kwargs) -> str:
-        """Implementation method - override in subclasses."""
-        raise NotImplementedError("Subclasses must implement _run method")
-    
-    def __call__(self, *args, **kwargs) -> str:
-        """Make the tool callable."""
-        return self.run(*args, **kwargs)
+class DesignValidationInput(BaseModel):
+    """Input schema for design validation tools."""
+    specification_text: str = Field(
+        ..., 
+        description="The complete text of the design specification to be reviewed against design principles."
+    )
 
-# --- Design Tools Using Composition ---
+class AcceptanceCriteriaInput(BaseModel):
+    """Input schema for acceptance criteria validation."""
+    criteria_list: List[str] = Field(
+        ..., 
+        description="A list of acceptance criteria to be validated for testability and clarity."
+    )
 
-class DesignPrinciplesValidatorTool(SimpleTool):
+class UserStoryInput(BaseModel):
+    """Input schema for user story validation."""
+    user_story: str = Field(
+        ...,
+        description="A user story to validate against Anna persona and project goals."
+    )
+
+# --- Specialized Design Tools ---
+
+class DesignPrinciplesValidatorTool(BaseTool):
     """
     Tool for validating design specifications against DigiNativa's 5 core design principles.
     
-    COMPOSITION APPROACH:
-    - No Pydantic inheritance
-    - Simple Python class with composition
-    - All state stored as regular instance variables
-    """
+    This tool ensures that every design decision serves the project's educational mission
+    and meets the specific needs of Swedish public sector employees like "Anna".
     
-    def __init__(self):
-        super().__init__(
-            name="Design Principles Validator",
-            description=(
-                "Validate a design specification against DigiNativa's 5 core design principles: "
-                "1) Pedagogik Framför Allt, 2) Policy till Praktik, 3) Respekt för Tid, "
-                "4) Helhetssyn Genom Handling, 5) Intelligens Inte Infantilisering. "
-                "Returns scored validation with reasoning for each principle."
-            )
-        )
-        
-        # Regular instance variables - no Pydantic conflicts
-        self.claude_llm = None
-        self.principles_cache = None
+    FIXED FOR CREWAI 0.28.8:
+    - Compatible tool inheritance
+    - Robust error handling
+    - Fallback validation when Claude unavailable
+    """
+    name: str = "Design Principles Validator"
+    description: str = (
+        "Validate a design specification against DigiNativa's 5 core design principles: "
+        "1) Pedagogik Framför Allt, 2) Policy till Praktik, 3) Respekt för Tid, "
+        "4) Helhetssyn Genom Handling, 5) Intelligens Inte Infantilisering. "
+        "Returns scored validation with reasoning for each principle."
+    )
+    
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        object.__setattr__(self, 'claude_llm', None)
+        object.__setattr__(self, 'principles_cache', None)
         
         # Initialize Claude LLM with error handling
         if ANTHROPIC_AVAILABLE:
-            self.claude_llm = self._create_claude_llm()
+            object.__setattr__(self, 'claude_llm', self._create_claude_llm())
 
     def _create_claude_llm(self) -> Optional[ChatAnthropic]:
         """Create Claude LLM instance with error handling."""
@@ -141,8 +182,8 @@ class DesignPrinciplesValidatorTool(SimpleTool):
 
     def _run(self, specification_text: str) -> str:
         """
+        FIXED: Run method that works with CrewAI 0.28.8
         Validate specification against design principles.
-        Simple implementation without Pydantic complications.
         """
         try:
             if not self.claude_llm:
@@ -252,29 +293,32 @@ class DesignPrinciplesValidatorTool(SimpleTool):
             "fallback_mode": True
         }, ensure_ascii=False, indent=2)
 
+    # FIXED: For CrewAI 0.28.8 compatibility
+    def run(self, specification_text: str) -> str:
+        """Public run method that CrewAI 0.28.8 expects"""
+        return self._run(specification_text)
 
-class AcceptanceCriteriaValidatorTool(SimpleTool):
+
+class AcceptanceCriteriaValidatorTool(BaseTool):
     """
     Tool for validating acceptance criteria to ensure they are specific, 
     measurable, and testable according to DigiNativa quality standards.
     
-    COMPOSITION APPROACH:
-    - No Pydantic inheritance
-    - Simple Python class with composition
+    FIXED FOR CREWAI 0.28.8:
+    - Compatible tool inheritance
+    - Proper error handling
+    - Fallback functionality
     """
+    name: str = "Acceptance Criteria Validator"
+    description: str = (
+        "Validate acceptance criteria to ensure they are specific, measurable, testable, "
+        "and aligned with DigiNativa's quality standards. Returns validation results "
+        "with improvement suggestions for unclear criteria."
+    )
     
-    def __init__(self):
-        super().__init__(
-            name="Acceptance Criteria Validator",
-            description=(
-                "Validate acceptance criteria to ensure they are specific, measurable, testable, "
-                "and aligned with DigiNativa's quality standards. Returns validation results "
-                "with improvement suggestions for unclear criteria."
-            )
-        )
-        
-        # Regular instance variables - no Pydantic conflicts
-        self.claude_llm = None
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        object.__setattr__(self, 'claude_llm', None)
         
         # Initialize Claude LLM with error handling
         if ANTHROPIC_AVAILABLE:
@@ -299,8 +343,8 @@ class AcceptanceCriteriaValidatorTool(SimpleTool):
 
     def _run(self, criteria_list: List[str]) -> str:
         """
-        Validate acceptance criteria for testability and clarity.
-        Simple implementation without Pydantic complications.
+        FIXED: Validate acceptance criteria for testability and clarity.
+        Works with CrewAI 0.28.8
         """
         try:
             if not self.claude_llm:
@@ -382,30 +426,33 @@ class AcceptanceCriteriaValidatorTool(SimpleTool):
         
         return json.dumps(fallback_results, ensure_ascii=False, indent=2)
 
+    # FIXED: For CrewAI 0.28.8 compatibility
+    def run(self, criteria_list: List[str]) -> str:
+        """Public run method that CrewAI 0.28.8 expects"""
+        return self._run(criteria_list)
 
-class AnnaPersonaValidatorTool(SimpleTool):
+
+class AnnaPersonaValidatorTool(BaseTool):
     """
     Tool for validating designs against the "Anna" persona - the primary target user
     for DigiNativa. Ensures all design decisions serve a busy public sector professional.
     
-    COMPOSITION APPROACH:
-    - No Pydantic inheritance
-    - Simple Python class with composition
+    FIXED FOR CREWAI 0.28.8:
+    - Compatible tool inheritance
+    - Proper error handling
+    - Fallback functionality
     """
+    name: str = "Anna Persona Validator"
+    description: str = (
+        "Validate designs against the 'Anna' persona - a 42-year-old IT strategist "
+        "in Swedish public sector. Ensures designs meet her needs for professional, "
+        "time-efficient, and pedagogically effective learning experiences."
+    )
     
-    def __init__(self):
-        super().__init__(
-            name="Anna Persona Validator",
-            description=(
-                "Validate designs against the 'Anna' persona - a 42-year-old IT strategist "
-                "in Swedish public sector. Ensures designs meet her needs for professional, "
-                "time-efficient, and pedagogically effective learning experiences."
-            )
-        )
-        
-        # Regular instance variables - no Pydantic conflicts
-        self.claude_llm = None
-        self.anna_profile = None
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        object.__setattr__(self, 'claude_llm', None)
+        object.__setattr__(self, 'anna_profile', None)
         
         # Initialize Claude LLM and load Anna profile
         if ANTHROPIC_AVAILABLE:
@@ -457,8 +504,8 @@ class AnnaPersonaValidatorTool(SimpleTool):
 
     def _run(self, specification_text: str) -> str:
         """
-        Validate specification against Anna persona needs.
-        Simple implementation without Pydantic complications.
+        FIXED: Validate specification against Anna persona needs.
+        Works with CrewAI 0.28.8
         """
         try:
             if not self.claude_llm:
@@ -550,11 +597,16 @@ class AnnaPersonaValidatorTool(SimpleTool):
             "validation_summary": "Manual persona validation required - AI validation unavailable"
         }, ensure_ascii=False, indent=2)
 
+    # FIXED: For CrewAI 0.28.8 compatibility
+    def run(self, specification_text: str) -> str:
+        """Public run method that CrewAI 0.28.8 expects"""
+        return self._run(specification_text)
+
 
 # Convenience function for testing all design tools
 def test_all_design_tools():
     """Test all design tools with sample data."""
-    print("🧪 Testing DigiNativa Design Tools (Composition Based)...")
+    print("🧪 Testing DigiNativa Design Tools...")
     
     # Sample specification text
     sample_spec = """
