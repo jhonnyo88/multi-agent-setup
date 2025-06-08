@@ -1,15 +1,15 @@
 """
-Enhanced Design Tools for DigiNativa Speldesigner Agent
-======================================================
+Enhanced Design Tools for DigiNativa Speldesigner Agent - FIXED for CrewAI 0.28.8
+=================================================================================
 
 PURPOSE:
 Specialized tools that give the Speldesigner agent cognitive abilities to validate
 their own specifications against the project's core principles (DNA) and ensure
 all designs meet quality standards before being handed over to development.
 
-CREWAI COMPATIBILITY:
-Updated to work with CrewAI's current tool system and Claude integration.
-Uses proper CrewAI BaseTool imports and error handling.
+CREWAI 0.28.8 COMPATIBILITY:
+Updated to work with CrewAI 0.28.8's tool system and error handling.
+Uses fallback imports for different CrewAI versions.
 
 ADAPTATION GUIDE:
 🔧 To adapt these tools:
@@ -24,12 +24,59 @@ import json
 import re
 from typing import List, Type, Optional, Dict, Any
 from pathlib import Path
+from tools.tool_base import UniversalBaseTool as BaseTool
 
-from crewai.tools import BaseTool
+
+# FIXED: CrewAI 0.28.8 compatible imports
+try:
+    # Try newer CrewAI versions first
+    from crewai.tools import BaseTool
+    CREWAI_TOOLS_V2 = True
+    print("✅ Using crewai.tools.BaseTool")
+except ImportError:
+    try:
+        # Try crewai_tools package
+        from crewai_tools import BaseTool
+        CREWAI_TOOLS_V2 = True
+        print("✅ Using crewai_tools.BaseTool")
+    except ImportError:
+        try:
+            # Fallback to LangChain
+            from langchain.tools import BaseTool
+            CREWAI_TOOLS_V2 = False
+            print("⚠️  Using LangChain BaseTool fallback")
+        except ImportError:
+            # Manual implementation as last resort
+            print("❌ No BaseTool found, using manual implementation")
+            from pydantic import BaseModel
+            
+            class BaseTool(BaseModel):
+                """Manual BaseTool implementation for CrewAI 0.28.8"""
+                name: str
+                description: str
+                
+                def _run(self, *args, **kwargs):
+                    raise NotImplementedError("Subclasses must implement _run method")
+                
+                def run(self, *args, **kwargs):
+                    """Run method that CrewAI expects"""
+                    return self._run(*args, **kwargs)
+            
+            CREWAI_TOOLS_V2 = False
+
 from pydantic import BaseModel, Field
-from langchain_anthropic import ChatAnthropic
 
-# Import configuration and dependencies
+# Import configuration and dependencies with error handling
+try:
+    from langchain_anthropic import ChatAnthropic
+    ANTHROPIC_AVAILABLE = True
+except ImportError:
+    print("⚠️  langchain_anthropic not available")
+    ANTHROPIC_AVAILABLE = False
+    class ChatAnthropic:
+        def __init__(self, *args, **kwargs):
+            pass
+
 from config.settings import AGENT_CONFIG, SECRETS, DNA_DIR, PROJECT_ROOT
 from tools.file_tools import read_file
 
@@ -64,6 +111,11 @@ class DesignPrinciplesValidatorTool(BaseTool):
     
     This tool ensures that every design decision serves the project's educational mission
     and meets the specific needs of Swedish public sector employees like "Anna".
+    
+    FIXED FOR CREWAI 0.28.8:
+    - Compatible tool inheritance
+    - Robust error handling
+    - Fallback validation when Claude unavailable
     """
     name: str = "Design Principles Validator"
     description: str = (
@@ -72,14 +124,15 @@ class DesignPrinciplesValidatorTool(BaseTool):
         "4) Helhetssyn Genom Handling, 5) Intelligens Inte Infantilisering. "
         "Returns scored validation with reasoning for each principle."
     )
-    args_schema: Type[BaseModel] = DesignValidationInput
-    claude_llm: Optional[ChatAnthropic] = None
-    principles_cache: Optional[str] = None
     
-    def __init__(self):
-        super().__init__()
-        self.claude_llm = self._create_claude_llm()
-        self.principles_cache = None
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.claude_llm: Optional[ChatAnthropic] = None
+        self.principles_cache: Optional[str] = None
+        
+        # Initialize Claude LLM with error handling
+        if ANTHROPIC_AVAILABLE:
+            self.claude_llm = self._create_claude_llm()
 
     def _create_claude_llm(self) -> Optional[ChatAnthropic]:
         """Create Claude LLM instance with error handling."""
@@ -128,7 +181,10 @@ class DesignPrinciplesValidatorTool(BaseTool):
         """
 
     def _run(self, specification_text: str) -> str:
-        """Validate specification against design principles."""
+        """
+        FIXED: Run method that works with CrewAI 0.28.8
+        Validate specification against design principles.
+        """
         try:
             if not self.claude_llm:
                 return self._fallback_validation(specification_text)
@@ -237,11 +293,21 @@ class DesignPrinciplesValidatorTool(BaseTool):
             "fallback_mode": True
         }, ensure_ascii=False, indent=2)
 
+    # FIXED: For CrewAI 0.28.8 compatibility
+    def run(self, specification_text: str) -> str:
+        """Public run method that CrewAI 0.28.8 expects"""
+        return self._run(specification_text)
+
 
 class AcceptanceCriteriaValidatorTool(BaseTool):
     """
     Tool for validating acceptance criteria to ensure they are specific, 
     measurable, and testable according to DigiNativa quality standards.
+    
+    FIXED FOR CREWAI 0.28.8:
+    - Compatible tool inheritance
+    - Proper error handling
+    - Fallback functionality
     """
     name: str = "Acceptance Criteria Validator"
     description: str = (
@@ -249,13 +315,14 @@ class AcceptanceCriteriaValidatorTool(BaseTool):
         "and aligned with DigiNativa's quality standards. Returns validation results "
         "with improvement suggestions for unclear criteria."
     )
-    args_schema: Type[BaseModel] = AcceptanceCriteriaInput
-    claude_llm: Optional[ChatAnthropic] = None # KORRIGERING: Fältet är tillagt
-
     
-    def __init__(self):
-        super().__init__()
-        self.claude_llm = self._create_claude_llm()
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.claude_llm: Optional[ChatAnthropic] = None
+        
+        # Initialize Claude LLM with error handling
+        if ANTHROPIC_AVAILABLE:
+            self.claude_llm = self._create_claude_llm()
 
     def _create_claude_llm(self) -> Optional[ChatAnthropic]:
         """Create Claude LLM instance with error handling."""
@@ -275,7 +342,10 @@ class AcceptanceCriteriaValidatorTool(BaseTool):
             return None
 
     def _run(self, criteria_list: List[str]) -> str:
-        """Validate acceptance criteria for testability and clarity."""
+        """
+        FIXED: Validate acceptance criteria for testability and clarity.
+        Works with CrewAI 0.28.8
+        """
         try:
             if not self.claude_llm:
                 return self._fallback_criteria_validation(criteria_list)
@@ -356,11 +426,21 @@ class AcceptanceCriteriaValidatorTool(BaseTool):
         
         return json.dumps(fallback_results, ensure_ascii=False, indent=2)
 
+    # FIXED: For CrewAI 0.28.8 compatibility
+    def run(self, criteria_list: List[str]) -> str:
+        """Public run method that CrewAI 0.28.8 expects"""
+        return self._run(criteria_list)
+
 
 class AnnaPersonaValidatorTool(BaseTool):
     """
     Tool for validating designs against the "Anna" persona - the primary target user
     for DigiNativa. Ensures all design decisions serve a busy public sector professional.
+    
+    FIXED FOR CREWAI 0.28.8:
+    - Compatible tool inheritance
+    - Proper error handling
+    - Fallback functionality
     """
     name: str = "Anna Persona Validator"
     description: str = (
@@ -368,13 +448,15 @@ class AnnaPersonaValidatorTool(BaseTool):
         "in Swedish public sector. Ensures designs meet her needs for professional, "
         "time-efficient, and pedagogically effective learning experiences."
     )
-    args_schema: Type[BaseModel] = DesignValidationInput
-    claude_llm: Optional[ChatAnthropic] = None
-    anna_profile: Optional[str] = None
     
-    def __init__(self):
-        super().__init__()
-        self.claude_llm = self._create_claude_llm()
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.claude_llm: Optional[ChatAnthropic] = None
+        self.anna_profile: Optional[str] = None
+        
+        # Initialize Claude LLM and load Anna profile
+        if ANTHROPIC_AVAILABLE:
+            self.claude_llm = self._create_claude_llm()
         self.anna_profile = self._load_anna_profile()
 
     def _create_claude_llm(self) -> Optional[ChatAnthropic]:
@@ -421,7 +503,10 @@ class AnnaPersonaValidatorTool(BaseTool):
         """
 
     def _run(self, specification_text: str) -> str:
-        """Validate specification against Anna persona needs."""
+        """
+        FIXED: Validate specification against Anna persona needs.
+        Works with CrewAI 0.28.8
+        """
         try:
             if not self.claude_llm:
                 return self._fallback_persona_validation()
@@ -512,6 +597,11 @@ class AnnaPersonaValidatorTool(BaseTool):
             "validation_summary": "Manual persona validation required - AI validation unavailable"
         }, ensure_ascii=False, indent=2)
 
+    # FIXED: For CrewAI 0.28.8 compatibility
+    def run(self, specification_text: str) -> str:
+        """Public run method that CrewAI 0.28.8 expects"""
+        return self._run(specification_text)
+
 
 # Convenience function for testing all design tools
 def test_all_design_tools():
@@ -551,19 +641,19 @@ def test_all_design_tools():
         # Test Design Principles Validator
         print("\n📊 Testing Design Principles Validator...")
         principles_validator = DesignPrinciplesValidatorTool()
-        principles_result = principles_validator._run(sample_spec)
+        principles_result = principles_validator.run(sample_spec)
         print("✅ Design Principles validation completed")
         
         # Test Acceptance Criteria Validator
         print("\n📋 Testing Acceptance Criteria Validator...")
         criteria_validator = AcceptanceCriteriaValidatorTool()
-        criteria_result = criteria_validator._run(sample_criteria)
+        criteria_result = criteria_validator.run(sample_criteria)
         print("✅ Acceptance Criteria validation completed")
         
         # Test Anna Persona Validator
         print("\n👤 Testing Anna Persona Validator...")
         persona_validator = AnnaPersonaValidatorTool()
-        persona_result = persona_validator._run(sample_spec)
+        persona_result = persona_validator.run(sample_spec)
         print("✅ Anna Persona validation completed")
         
         print("\n🎉 All design tools tested successfully!")

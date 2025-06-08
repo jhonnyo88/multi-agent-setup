@@ -1,15 +1,13 @@
 """
-File Management Tools for DigiNativa AI Agents (CrewAI 0.28.8 Compatible)
-=========================================================================
+File Management Tools for DigiNativa AI Agents (Universal CrewAI Compatible)
+==========================================================================
 
 PURPOSE:
 Provides AI agents with secure, validated file operations for reading project
 DNA documents, creating specifications, writing reports, and managing artifacts.
 
-FIXED FOR CREWAI 0.28.8:
-- Proper tool inheritance
-- Compatible imports
-- Error handling for different CrewAI versions
+UNIVERSAL CREWAI COMPATIBILITY:
+Updated to work with CrewAI 0.28.8 using universal tool base.
 """
 
 import os
@@ -20,33 +18,10 @@ from pathlib import Path
 from typing import Dict, List, Optional, Union, Any
 import dataclasses
 
-# FIXED: CrewAI 0.28.8 compatible imports
-try:
-    # Try the correct import for CrewAI 0.28.8
-    from crewai_tools import BaseTool
-    CREWAI_TOOLS_AVAILABLE = True
-    print("✅ Using crewai_tools.BaseTool")
-except ImportError:
-    try:
-        # Fallback to crewai.tools
-        from crewai.tools import BaseTool
-        CREWAI_TOOLS_AVAILABLE = True
-        print("✅ Using crewai.tools.BaseTool")
-    except ImportError:
-        # Last resort: create our own base tool
-        CREWAI_TOOLS_AVAILABLE = False
-        print("⚠️  Creating fallback BaseTool")
-        
-        class BaseTool:
-            """Fallback BaseTool implementation for compatibility"""
-            def __init__(self, **kwargs):
-                self.name = kwargs.get('name', 'Unknown Tool')
-                self.description = kwargs.get('description', 'Tool description')
-            
-            def _run(self, *args, **kwargs):
-                raise NotImplementedError("Tool must implement _run method")
-
+# UNIVERSAL: Use our universal tool base that works across CrewAI versions
+from tools.tool_base import UniversalBaseTool as BaseTool
 from pydantic import BaseModel, Field
+
 from config.settings import PROJECT_ROOT, STATE_DIR
 
 @dataclasses.dataclass
@@ -163,37 +138,33 @@ class FilePathValidator:
     def validate_write_path(cls, fp: Union[str, Path]) -> tuple[bool, str]:
         return cls._validate_path(fp, cls.ALLOWED_WRITE_PATHS, cls.ALLOWED_WRITE_EXTENSIONS, "write")
 
-# Tool Input Schema
-class FileToolInput(BaseModel):
-    """Input schema for file operations."""
-    file_path: str = Field(..., description="Path to the file")
-    content: Optional[str] = Field(None, description="Content to write (for write operations)")
-    encoding: str = Field("utf-8", description="File encoding")
-
-# CrewAI compatible tool definitions
+# UNIVERSAL: CrewAI-compatible tool definitions using universal base
 class FileReadTool(BaseTool):
-    """Tool for safely reading files - CrewAI 0.28.8 compatible."""
-    name: str = "file_read_tool"
+    """Tool for safely reading files - Universal CrewAI compatible."""
+    name: str = "File Read Tool"
     description: str = "Read the contents of a file safely with proper validation and logging. Provide the file path as input."
     
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-    
-    def _run(self, file_path: str, encoding: str = "utf-8") -> str:
+    def _run(self, file_path: str) -> str:
         """Execute file reading operation."""
-        return read_file(file_path=file_path, agent_name="agent", encoding=encoding)
+        return read_file(file_path=file_path, agent_name="agent")
 
 class FileWriteTool(BaseTool):
-    """Tool for safely writing files - CrewAI 0.28.8 compatible."""
-    name: str = "file_write_tool"
-    description: str = "Write content to a file safely with proper validation and logging. Provide file_path and content as input."
+    """Tool for safely writing files - Universal CrewAI compatible."""
+    name: str = "File Write Tool"
+    description: str = "Write content to a file safely with proper validation and logging. Provide file_path and content as parameters."
     
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-    
-    def _run(self, file_path: str, content: str, encoding: str = "utf-8") -> str:
+    def _run(self, file_path: str, content: str) -> str:
         """Execute file writing operation."""
-        return write_file(file_path=file_path, content=content, agent_name="agent", encoding=encoding)
+        return write_file(file_path=file_path, content=content, agent_name="agent")
+
+class FileListTool(BaseTool):
+    """Tool for listing files in directories - Universal CrewAI compatible."""
+    name: str = "File List Tool"
+    description: str = "List files in a directory with optional extension filtering. Provide directory_path and optional extension_filter."
+    
+    def _run(self, directory_path: str, extension_filter: str = None) -> str:
+        """Execute file listing operation."""
+        return list_files_in_directory(directory_path=directory_path, agent_name="agent", extension_filter=extension_filter)
 
 def read_file(file_path: str, agent_name: str = "unknown", encoding: str = "utf-8") -> str:
     """
@@ -381,30 +352,48 @@ def list_files_in_directory(directory_path: str, agent_name: str = "unknown",
 
 # Test function
 def test_file_tools():
-    """Test file tools functionality."""
+    """Test all file tools functionality."""
+    print("🧪 Testing Universal File Tools...")
+    
     try:
-        print("🧪 Testing file tools...")
-        
         # Test file writing
-        test_content = "# Test File\nThis is a test file for CrewAI compatibility."
-        test_path = "reports/test_file_tools.md"
+        test_content = "# Test File\n\nThis is a test created by universal file tools."
+        test_file_path = "reports/test_universal_tools.md"
         
-        write_result = write_file(test_path, test_content, "test_runner")
+        write_result = write_file(test_file_path, test_content, "test_runner")
         print(f"Write result: {write_result}")
         
-        # Test file reading
-        read_result = read_file(test_path, "test_runner")
-        print(f"Read result length: {len(read_result)} chars")
+        if "successfully" in write_result.lower():
+            # Test file reading
+            read_content = read_file(test_file_path, "test_runner")
+            print(f"Read successful: {read_content == test_content}")
+            
+            # Test file listing
+            list_result = list_files_in_directory("reports")
+            print(f"Directory listing successful: {'test_universal_tools.md' in list_result}")
+            
+            # Cleanup
+            test_file = PROJECT_ROOT / test_file_path
+            if test_file.exists():
+                test_file.unlink()
+                print("✅ Test file cleaned up")
         
-        # Test tools
+        # Test tools as CrewAI tools
+        print("\n🔧 Testing as CrewAI Tools...")
+        
+        # Test FileReadTool
         read_tool = FileReadTool()
+        print(f"Read tool name: {read_tool.name}")
+        
+        # Test FileWriteTool
         write_tool = FileWriteTool()
+        print(f"Write tool name: {write_tool.name}")
         
-        print(f"✅ File tools test passed")
-        print(f"   Read tool: {read_tool.name}")
-        print(f"   Write tool: {write_tool.name}")
-        print(f"   CrewAI tools available: {CREWAI_TOOLS_AVAILABLE}")
+        # Test FileListTool
+        list_tool = FileListTool()
+        print(f"List tool name: {list_tool.name}")
         
+        print("✅ All file tools working with universal base!")
         return True
         
     except Exception as e:
