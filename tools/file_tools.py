@@ -83,6 +83,12 @@ class FilePathValidator:
     ALLOWED_READ_EXTENSIONS = {'.md', '.txt', '.json', '.yml', '.yaml', '.toml', '.py', '.js', '.ts', '.jsx', '.tsx', '.html', '.css', '.svg', '.csv', '.xml'}
     ALLOWED_WRITE_EXTENSIONS = {'.md', '.txt', '.json', '.yml', '.yaml', '.log', '.csv', '.html', '.svg', '.py', '.tsx', '.js', '.ts'}
     MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024  # 10MB
+    
+    # ADDED: Allowed external repositories for cross-repo operations
+    ALLOWED_EXTERNAL_REPOS = [
+        "C:/Users/jcols/Documents/diginativa-game",  # Product repo
+        "C:\\Users\\jcols\\Documents\\diginativa-game",  # Windows path variant
+    ]
 
     @classmethod
     def _validate_path(cls, file_path: Union[str, Path], allowed_paths: List[str], extensions: set, op: str) -> tuple[bool, str]:
@@ -91,18 +97,33 @@ class FilePathValidator:
             # Convert to Path and resolve
             path_obj = Path(file_path)
             
-            # Handle both absolute and relative paths
+            # UPDATED: Handle external repos and project paths
             if path_obj.is_absolute():
-                try:
-                    relative_path = path_obj.relative_to(PROJECT_ROOT.resolve())
-                except ValueError:
-                    return False, f"Path outside project directory: {file_path}"
+                # Check if path is in allowed external repo
+                path_str = str(path_obj.resolve())
+                
+                # First check external repos
+                for allowed_repo in cls.ALLOWED_EXTERNAL_REPOS:
+                    if path_str.startswith(allowed_repo):
+                        print(f"✅ External repo access allowed: {allowed_repo}")
+                        # For external repos, extract relative path within that repo
+                        try:
+                            relative_path = path_obj.relative_to(Path(allowed_repo))
+                            relative_path_str = str(relative_path).replace('\\', '/')
+                            break
+                        except ValueError:
+                            continue
+                else:
+                    # If not in external repos, must be within PROJECT_ROOT
+                    try:
+                        relative_path = path_obj.relative_to(PROJECT_ROOT.resolve())
+                        relative_path_str = str(relative_path).replace('\\', '/')
+                    except ValueError:
+                        return False, f"Path outside project directory and not in allowed external repos: {file_path}"
             else:
                 relative_path = path_obj
                 path_obj = PROJECT_ROOT / relative_path
-            
-            # Convert to forward slashes for consistent checking
-            relative_path_str = str(relative_path).replace('\\', '/')
+                relative_path_str = str(relative_path).replace('\\', '/')
             
             # Check if path starts with allowed directory
             if not any(relative_path_str.startswith(allowed) for allowed in allowed_paths):

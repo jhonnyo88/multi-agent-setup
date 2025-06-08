@@ -55,7 +55,7 @@ from config.settings import SECRETS, GITHUB_CONFIG, PROJECT_ROOT
 
 # Workspace configuration for cross-repo operations
 AI_REPO_PATH = PROJECT_ROOT  # This repo (multi-agent-setup)
-PRODUCT_REPO_PATH = PROJECT_ROOT / "workspace" / GITHUB_CONFIG['project_repo']['name']  # diginativa-game
+PRODUCT_REPO_PATH = Path("C:/Users/jcols/Documents/diginativa-game")  # local directory for diginativa-game
 
 class GitCommandInput(BaseModel):
     """Input schema for Git operations."""

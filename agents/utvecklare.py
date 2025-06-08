@@ -70,11 +70,19 @@ class EnhancedUtvecklareAgent:
         self.status_handler = StatusHandler()
         
         # Workspace paths for cross-repo operations
-        self.product_repo_path = PROJECT_ROOT / "workspace" / GITHUB_CONFIG['project_repo']['name']
+        self.product_repo_path = Path("C:/Users/jcols/Documents/diginativa-game")
         self.specs_path = self.product_repo_path / "docs" / "specs"
         self.frontend_path = self.product_repo_path / "frontend" / "src" / "components"
         self.backend_path = self.product_repo_path / "backend" / "app" / "api"
         
+        # Verify the real repo exists
+        if not self.product_repo_path.exists():
+            print(f"❌ Product repo not found at: {self.product_repo_path}")
+            print(f"   Expected: C:/Users/jcols/Documents/diginativa-game")
+            print(f"   Please clone the diginativa-game repo to this location")
+        else:
+            print(f"✅ Product repo found at: {self.product_repo_path}")
+
         # Initialize tools with error handling
         try:
             from tools.dev_tools import EnhancedGitTool
@@ -244,9 +252,9 @@ class EnhancedUtvecklareAgent:
                 "backend_files": backend_result.get("files_created", []),
                 "frontend_files": frontend_result.get("files_created", []),
                 "git_commit": commit_result,
+                "pull_request": pr_result,
                 "implementation_time_seconds": implementation_time.total_seconds(),
                 "created_at": datetime.now().isoformat(),
-                "pull_request": pr_result,
                 "ai_model": self.agent_config.llm_model
             }
             
@@ -568,18 +576,22 @@ class EnhancedUtvecklareAgent:
             # Clean and validate the generated code
             backend_code = self._clean_generated_code(backend_code, "python")
             
-            # Write backend file
-            backend_file_path = f"workspace/{GITHUB_CONFIG['project_repo']['name']}/backend/app/api/{story_id}.py"
-            write_result = write_file(backend_file_path, backend_code, "utvecklare")
+            # FIXED: Write to real diginativa-game repo, not workspace
+            backend_file_path = self.backend_path / f"{story_id}.py"
+            backend_file_relative = f"backend/app/api/{story_id}.py"
+            
+            # Use absolute path for writing, relative path for Git operations
+            write_result = write_file(str(backend_file_path), backend_code, "utvecklare")
             
             if "successfully" not in write_result.lower():
                 raise Exception(f"Failed to write backend file: {write_result}")
             
-            print(f"✅ Backend code generated: {backend_file_path}")
+            print(f"✅ Backend code generated: {backend_file_relative}")
             
             return {
                 "status": "success",
-                "files_created": [backend_file_path],
+                "files_created": [backend_file_relative],  # Relative path for Git
+                "absolute_path": str(backend_file_path),    # Absolute path for reference
                 "code_length": len(backend_code),
                 "endpoints": len(api_design.get("endpoints", [])),
                 "models": len(api_design.get("data_models", []))
@@ -686,18 +698,22 @@ async def get_{story_id.replace('-', '_').lower()}():
             # Clean and validate the generated code
             frontend_code = self._clean_generated_code(frontend_code, "typescript")
             
-            # Write frontend file
-            frontend_file_path = f"workspace/{GITHUB_CONFIG['project_repo']['name']}/frontend/src/components/{story_id}.tsx"
-            write_result = write_file(frontend_file_path, frontend_code, "utvecklare")
+            # FIXED: Write to real diginativa-game repo, not workspace
+            frontend_file_path = self.frontend_path / f"{story_id}.tsx"
+            frontend_file_relative = f"frontend/src/components/{story_id}.tsx"
+            
+            # Use absolute path for writing, relative path for Git operations
+            write_result = write_file(str(frontend_file_path), frontend_code, "utvecklare")
             
             if "successfully" not in write_result.lower():
                 raise Exception(f"Failed to write frontend file: {write_result}")
             
-            print(f"✅ Frontend code generated: {frontend_file_path}")
+            print(f"✅ Frontend code generated: {frontend_file_relative}")
             
             return {
                 "status": "success",
-                "files_created": [frontend_file_path],
+                "files_created": [frontend_file_relative],  # Relative path for Git
+                "absolute_path": str(frontend_file_path),    # Absolute path for reference
                 "code_length": len(frontend_code),
                 "component_name": f"{story_id}"
             }
@@ -961,28 +977,6 @@ export default {component_name};
             return f"❌ PR creation failed: {str(e)}"
 
 
-    # 2. Sedan, uppdatera implement_story_from_spec metoden
-    # Hitta raden som säger "# Step 6: Commit changes to Git" (runt rad 200)
-    # Lägg till efter commit_result = await self._commit_implementation(...):
-
-                # Step 7: Create Pull Request (NEW!)
-                pr_result = await self._create_pull_request(story_id, story_data, [backend_result, frontend_result])
-
-    # 3. Uppdatera complete_results dictionary (lägg till en rad):
-                complete_results = {
-                    "story_id": story_id,
-                    "implementation_status": "completed",
-                    "workspace_setup": workspace_result,
-                    "specification_parsed": spec_data.get("title", "Unknown"),
-                    "backend_files": backend_result.get("files_created", []),
-                    "frontend_files": frontend_result.get("files_created", []),
-                    "git_commit": commit_result,
-                    "pull_request": pr_result,  # LÄGG TILL DENNA RAD
-                    "implementation_time_seconds": implementation_time.total_seconds(),
-                    "created_at": datetime.now().isoformat(),
-                    "ai_model": self.agent_config.llm_model
-                }
-
     async def _commit_implementation(self, story_id: str, story_data: Dict[str, Any], implementation_results: List[Dict[str, Any]]) -> str:
         """Commit implementation to Git with proper commit message."""
         try:
@@ -1098,27 +1092,6 @@ export default {component_name};
             
         except Exception as e:
             return f"❌ PR creation failed: {str(e)}"
-
-    # Uppdatera implement_story_from_spec metoden för att inkludera PR creation:
-    # Lägg till efter Step 6 (commit):
-
-    # Step 7: Create Pull Request (NEW!)
-    pr_result = await self._create_pull_request(story_id, story_data, [backend_result, frontend_result])
-
-    # Uppdatera complete_results dictionary:
-    complete_results = {
-        "story_id": story_id,
-        "implementation_status": "completed",
-        "workspace_setup": workspace_result,
-        "specification_parsed": spec_data.get("title", "Unknown"),
-        "backend_files": backend_result.get("files_created", []),
-        "frontend_files": frontend_result.get("files_created", []),
-        "git_commit": commit_result,
-        "pull_request": pr_result,  # NEW!
-        "implementation_time_seconds": implementation_time.total_seconds(),
-        "created_at": datetime.now().isoformat(),
-        "ai_model": self.agent_config.llm_model
-    }
 
 # Factory function to create Enhanced Utvecklare agent
 def create_enhanced_utvecklare_agent() -> EnhancedUtvecklareAgent:
