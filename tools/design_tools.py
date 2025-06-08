@@ -318,7 +318,7 @@ class AcceptanceCriteriaValidatorTool(BaseTool):
     
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.claude_llm: Optional[ChatAnthropic] = None
+        object.__setattr__(self, 'claude_llm', None)
         
         # Initialize Claude LLM with error handling
         if ANTHROPIC_AVAILABLE:
@@ -451,8 +451,8 @@ class AnnaPersonaValidatorTool(BaseTool):
     
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.claude_llm: Optional[ChatAnthropic] = None
-        self.anna_profile: Optional[str] = None
+        object.__setattr__(self, 'claude_llm', None)
+        object.__setattr__(self, 'anna_profile', None)
         
         # Initialize Claude LLM and load Anna profile
         if ANTHROPIC_AVAILABLE:

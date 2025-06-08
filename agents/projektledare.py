@@ -1613,4 +1613,3 @@ if __name__ == "__main__":
     
     # Run test if script is executed directly
     asyncio.run(test_projektledare())
-

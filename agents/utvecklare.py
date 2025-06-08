@@ -1210,3 +1210,9 @@ if __name__ == "__main__":
     
     # Run test if script is executed directly
     asyncio.run(test_enhanced_utvecklare())
+
+def create_utvecklare_agent() -> EnhancedUtvecklareAgent:
+    """
+    Alias for create_enhanced_utvecklare_agent for coordinator compatibility.
+    """
+    return create_enhanced_utvecklare_agent()
