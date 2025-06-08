@@ -127,12 +127,12 @@ class DesignPrinciplesValidatorTool(BaseTool):
     
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.claude_llm: Optional[ChatAnthropic] = None
-        self.principles_cache: Optional[str] = None
+        object.__setattr__(self, 'claude_llm', None)
+        object.__setattr__(self, 'principles_cache', None)
         
         # Initialize Claude LLM with error handling
         if ANTHROPIC_AVAILABLE:
-            self.claude_llm = self._create_claude_llm()
+            object.__setattr__(self, 'claude_llm', self._create_claude_llm())
 
     def _create_claude_llm(self) -> Optional[ChatAnthropic]:
         """Create Claude LLM instance with error handling."""
