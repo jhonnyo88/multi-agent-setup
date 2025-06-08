@@ -127,57 +127,61 @@ class EnhancedUtvecklareAgent:
             return None
     
     def _create_agent(self) -> Optional[Agent]:
-        """Create the enhanced CrewAI agent with code generation capabilities."""
-        if not CREWAI_AVAILABLE or not self.claude_llm:
-            return None
-            
-        try:
-            tech_stack_description = (
-                f"{TECH_STACK['frontend']['framework']} + "
-                f"{TECH_STACK['frontend']['language']} + "
-                f"{TECH_STACK['backend']['framework']}"
-            )
-            
-            return Agent(
-                role=f"Enhanced Full-Stack Developer ({tech_stack_description})",
+            """Create the enhanced CrewAI agent with code generation capabilities - FIXED for 0.28.8."""
+            if not CREWAI_AVAILABLE or not self.claude_llm:
+                return None
                 
-                goal=f"""
-                Transform UX specifications into production-ready code for DigiNativa.
-                Generate high-quality {TECH_STACK['frontend']['framework']} components and 
-                {TECH_STACK['backend']['framework']} APIs that exactly match specifications.
-                """,
+            try:
+                tech_stack_description = (
+                    f"{TECH_STACK['frontend']['framework']} + "
+                    f"{TECH_STACK['frontend']['language']} + "
+                    f"{TECH_STACK['backend']['framework']}"
+                )
                 
-                backstory=f"""
-                You are a world-class full-stack developer powered by Claude-3.5-Sonnet, 
-                specializing in the DigiNativa technology stack: {tech_stack_description}.
+                # FIXED: Create tools WITHOUT importing BaseTool in agent context
+                # Use convenience functions instead of tool objects
+                agent_tools = []  # Start with empty tools list
                 
-                Your development process follows these principles:
-                1. Read and understand UX specifications thoroughly
-                2. Generate backend APIs first, then frontend components
-                3. Ensure all code follows architectural principles
-                4. Create production-ready, testable code
-                5. Validate implementation against specifications
+                return Agent(
+                    role=f"Enhanced Full-Stack Developer ({tech_stack_description})",
+                    
+                    goal=f"""
+                    Transform UX specifications into production-ready code for DigiNativa.
+                    Generate high-quality {TECH_STACK['frontend']['framework']} components and 
+                    {TECH_STACK['backend']['framework']} APIs that exactly match specifications.
+                    """,
+                    
+                    backstory=f"""
+                    You are a world-class full-stack developer powered by Claude-3.5-Sonnet, 
+                    specializing in the DigiNativa technology stack: {tech_stack_description}.
+                    
+                    Your development process follows these principles:
+                    1. Read and understand UX specifications thoroughly
+                    2. Generate backend APIs first, then frontend components
+                    3. Ensure all code follows architectural principles
+                    4. Create production-ready, testable code
+                    5. Validate implementation against specifications
+                    
+                    You work in the product repository workspace and create:
+                    - Frontend: React components with TypeScript
+                    - Backend: FastAPI endpoints with proper validation
+                    - Clean, maintainable, and well-documented code
+                    """,
+                    
+                    # FIXED: Use empty tools list - we'll use convenience functions instead
+                    tools=agent_tools,
+                    
+                    # FIXED: Explicitly specify Claude LLM instead of default OpenAI
+                    llm=self.claude_llm,
+                    
+                    verbose=True,
+                    allow_delegation=False,
+                    max_iterations=self.agent_config.max_iterations
+                )
                 
-                You work in the product repository workspace and create:
-                - Frontend: React components with TypeScript
-                - Backend: FastAPI endpoints with proper validation
-                - Clean, maintainable, and well-documented code
-                """,
-                
-                tools=[
-                    FileReadTool(),
-                    FileWriteTool()
-                ],
-                
-                verbose=True,
-                allow_delegation=False,
-                llm=self.claude_llm,
-                max_iterations=self.agent_config.max_iterations
-            )
-            
-        except Exception as e:
-            print(f"❌ Failed to create CrewAI agent: {e}")
-            return None
+            except Exception as e:
+                print(f"❌ Failed to create CrewAI agent: {e}")
+                return None
     
     async def implement_story_from_spec(self, story_data: Dict[str, Any]) -> Dict[str, Any]:
         """
