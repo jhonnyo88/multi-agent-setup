@@ -53,6 +53,8 @@ monitoring/reports/
 *.log
 reports/
 docs/specs/
+workspace/*
+
 
 # Secrets (never commit these!)
 .env
