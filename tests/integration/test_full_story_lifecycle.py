@@ -35,6 +35,18 @@ from agents.speldesigner import create_speldesigner_agent
 from tools.file_tools import read_file, write_file
 from config.settings import PROJECT_ROOT
 
+@pytest.fixture(scope="session")
+def projektledare_instance():
+    """Create a single Projektledare instance for all tests."""
+    from agents.projektledare import ProjektledareAgent
+    return ProjektledareAgent()
+
+@pytest.fixture(scope="session")  
+def speldesigner_instance():
+    """Create a single Speldesigner instance for all tests."""
+    from agents.speldesigner import create_speldesigner_agent
+    return create_speldesigner_agent()
+
 # Test configuration
 REPORTS_DIR = PROJECT_ROOT / "reports"
 REPORTS_DIR.mkdir(parents=True, exist_ok=True)
@@ -115,23 +127,31 @@ async def test_projektledare_initialization():
     print_test_section("Test 1: Projektledare Initialization")
     
     try:
-        projektledare = create_projektledare()
+        # FIXA: Skapa bara EN projektledare utan extra coordinator calls
+        from agents.projektledare import ProjektledareAgent
+        
+        # Skapa projektledare UTAN att anropa create_projektledare som skapar coordinator
+        projektledare = ProjektledareAgent()
+        
         assert projektledare is not None
-        assert hasattr(projektledare, 'analyze_feature_request')
-        assert hasattr(projektledare, 'create_story_breakdown')
+        assert hasattr(projektledare, 'claude_llm')
+        assert hasattr(projektledare, 'agent')
+        assert hasattr(projektledare, 'status_handler')
+        
         print_success("Projektledare initialized successfully")
         return projektledare
+        
     except Exception as e:
         print_error(f"Failed to initialize Projektledare: {e}")
         pytest.fail(f"Projektledare initialization failed: {e}")
 
 @pytest.mark.asyncio
-async def test_feature_analysis(mock_github_issue):
+async def test_feature_analysis(mock_github_issue, projektledare_instance):
     """Test feature analysis by Projektledare."""
     print_test_section("Test 2: Feature Analysis")
     
     try:
-        projektledare = create_projektledare()
+        projektledare = projektledare_instance
         
         print_info(f"Analyzing issue: '{mock_github_issue['title']}'")
         analysis_result = await projektledare.analyze_feature_request(mock_github_issue)
@@ -150,7 +170,7 @@ async def test_feature_analysis(mock_github_issue):
         pytest.fail(f"Feature analysis failed: {e}")
 
 @pytest.mark.asyncio 
-async def test_story_breakdown(mock_github_issue):
+async def test_story_breakdown(mock_github_issue, projektledare_instance):
     """Test story breakdown creation."""
     print_test_section("Test 3: Story Breakdown")
     

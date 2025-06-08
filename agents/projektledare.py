@@ -314,6 +314,216 @@ class ProjektledareAgent:
             
             return error_analysis
     
+    async def create_story_breakdown(self, feature_analysis: Dict[str, Any], 
+                                github_issue: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """
+        Create a breakdown of stories from an analyzed feature request.
+        
+        STORY BREAKDOWN PROCESS (Enhanced with Claude):
+        1. Analyze feature complexity and scope
+        2. Identify required agent specializations
+        3. Break down into logical, implementable stories
+        4. Assign each story to appropriate specialist agent
+        5. Define dependencies between stories
+        6. Generate testable acceptance criteria for each story
+        
+        Args:
+            feature_analysis: Analysis results from analyze_feature_request()
+            github_issue: Original GitHub Issue data
+            
+        Returns:
+            List of story definitions ready for agent delegation
+        """
+        try:
+            print(f"📋 Creating story breakdown for feature: {github_issue.get('title', 'Unknown')}")
+            
+            # Extract key information from analysis and issue
+            issue_title = github_issue.get("title", "Unknown Feature")
+            issue_body = github_issue.get("body", "")
+            complexity = feature_analysis.get("complexity", {})
+            required_agents = complexity.get("required_agents", ["speldesigner", "utvecklare"])
+            
+            # Create story ID base from issue number
+            issue_number = github_issue.get("number", 999)
+            story_base_id = f"STORY-{issue_number:03d}"
+            
+            # Define story breakdown based on feature complexity
+            stories = []
+            
+            # Story 1: UX Specification (Always needed)
+            stories.append({
+                "story_id": f"{story_base_id}-001",
+                "title": f"UX Specification: {issue_title}",
+                "description": f"Create detailed UX specification for {issue_title} feature",
+                "assigned_agent": "speldesigner",
+                "story_type": "specification",
+                "user_value": "Anna gets a well-designed, pedagogical interface that serves her learning needs",
+                "acceptance_criteria": [
+                    "UX specification document created in docs/specs/",
+                    "All 5 design principles validated and documented",
+                    "Acceptance criteria are specific and testable",
+                    "Visual design mockups or wireframes provided",
+                    "Accessibility requirements defined",
+                    "Mobile responsiveness requirements specified"
+                ],
+                "estimated_effort": "Medium",
+                "dependencies": [],
+                "design_principles_addressed": [
+                    "Pedagogik Framför Allt",
+                    "Policy till Praktik", 
+                    "Respekt för Tid",
+                    "Intelligens, Inte Infantilisering"
+                ]
+            })
+            
+            # Story 2: Backend Implementation (If needed)
+            if "utvecklare" in required_agents:
+                stories.append({
+                    "story_id": f"{story_base_id}-002",
+                    "title": f"Backend API: {issue_title}",
+                    "description": f"Implement FastAPI endpoints and business logic for {issue_title}",
+                    "assigned_agent": "utvecklare",
+                    "story_type": "backend",
+                    "user_value": "Reliable, fast API endpoints that support the feature functionality",
+                    "acceptance_criteria": [
+                        "FastAPI endpoints implemented according to specification",
+                        "Stateless backend design maintained",
+                        "API response times < 200ms",
+                        "Proper error handling and validation",
+                        "API documentation generated automatically",
+                        "Code follows architecture.md principles"
+                    ],
+                    "estimated_effort": "Large",
+                    "dependencies": [f"{story_base_id}-001"],
+                    "design_principles_addressed": [
+                        "Respekt för Tid",
+                        "Helhetssyn Genom Handling"
+                    ]
+                })
+            
+            # Story 3: Frontend Implementation (If needed)
+            if "utvecklare" in required_agents:
+                stories.append({
+                    "story_id": f"{story_base_id}-003", 
+                    "title": f"React Component: {issue_title}",
+                    "description": f"Implement React components and UI for {issue_title}",
+                    "assigned_agent": "utvecklare",
+                    "story_type": "frontend",
+                    "user_value": "Intuitive, responsive interface that Anna can use efficiently",
+                    "acceptance_criteria": [
+                        "React components implemented according to UX specification",
+                        "Responsive design works on mobile and desktop",
+                        "Component is accessible (WCAG compliance)",
+                        "Integrates with backend API correctly",
+                        "Loading states and error handling implemented",
+                        "TypeScript types properly defined"
+                    ],
+                    "estimated_effort": "Large",
+                    "dependencies": [f"{story_base_id}-001", f"{story_base_id}-002"],
+                    "design_principles_addressed": [
+                        "Respekt för Tid",
+                        "Intelligens, Inte Infantilisering"
+                    ]
+                })
+            
+            # Story 4: Automated Testing (If needed)
+            if "testutvecklare" in required_agents:
+                stories.append({
+                    "story_id": f"{story_base_id}-004",
+                    "title": f"Automated Tests: {issue_title}",
+                    "description": f"Create comprehensive test suite for {issue_title} feature",
+                    "assigned_agent": "testutvecklare", 
+                    "story_type": "testing",
+                    "user_value": "Reliable feature that works consistently without bugs",
+                    "acceptance_criteria": [
+                        "Unit tests for all backend endpoints",
+                        "Integration tests for API workflows",
+                        "React component tests with testing library",
+                        "Test coverage > 80% for new code",
+                        "All tests pass in CI/CD pipeline",
+                        "Performance tests validate response times"
+                    ],
+                    "estimated_effort": "Medium",
+                    "dependencies": [f"{story_base_id}-002", f"{story_base_id}-003"],
+                    "design_principles_addressed": [
+                        "Respekt för Tid"
+                    ]
+                })
+            
+            # Story 5: Quality Assurance (If needed)
+            if "qa_testare" in required_agents:
+                stories.append({
+                    "story_id": f"{story_base_id}-005",
+                    "title": f"QA Testing: {issue_title}",
+                    "description": f"Manual testing and validation from Anna's perspective",
+                    "assigned_agent": "qa_testare",
+                    "story_type": "qa",
+                    "user_value": "Feature works perfectly from Anna's perspective and serves her real needs",
+                    "acceptance_criteria": [
+                        "Manual testing completed from Anna persona perspective",
+                        "All acceptance criteria verified manually",
+                        "Cross-browser compatibility confirmed",
+                        "Mobile device testing completed",
+                        "Accessibility testing with screen readers",
+                        "Performance testing under realistic conditions"
+                    ],
+                    "estimated_effort": "Medium", 
+                    "dependencies": [f"{story_base_id}-003", f"{story_base_id}-004"],
+                    "design_principles_addressed": [
+                        "Pedagogik Framför Allt",
+                        "Respekt för Tid",
+                        "Intelligens, Inte Infantilisering"
+                    ]
+                })
+            
+            # Log story creation
+            self.status_handler.report_status(
+                agent_name="projektledare",
+                status_code="STORIES_CREATED",
+                payload={
+                    "issue_id": github_issue.get("number"),
+                    "stories_count": len(stories),
+                    "story_ids": [story["story_id"] for story in stories],
+                    "estimated_total_effort": self._calculate_total_effort(stories),
+                    "ai_model": "claude-3-5-sonnet"
+                }
+            )
+            
+            print(f"✅ Created {len(stories)} stories for feature")
+            for story in stories:
+                print(f"   📄 {story['story_id']}: {story['title']} (→ {story['assigned_agent']})")
+            
+            return stories
+            
+        except Exception as e:
+            error_message = f"Story breakdown creation failed: {str(e)}"
+            print(f"❌ {error_message}")
+            
+            # Report error
+            self.status_handler.report_status(
+                agent_name="projektledare",
+                status_code="STORY_CREATION_ERROR",
+                payload={
+                    "issue_id": github_issue.get("number"),
+                    "error_message": error_message,
+                    "error_type": type(e).__name__
+                }
+            )
+            
+            return []
+
+    def _calculate_total_effort(self, stories: List[Dict[str, Any]]) -> str:
+        """Calculate total estimated effort for all stories."""
+        effort_weights = {"Small": 1, "Medium": 2, "Large": 3}
+        total_weight = sum(effort_weights.get(story.get("estimated_effort", "Medium"), 2) for story in stories)
+        
+        if total_weight <= 3:
+            return "Small"
+        elif total_weight <= 6:
+            return "Medium"
+        else:
+            return "Large"
+
     async def get_next_available_feature(self) -> Optional[Dict[str, Any]]:
         """
         Find the highest priority feature that's ready to start.
