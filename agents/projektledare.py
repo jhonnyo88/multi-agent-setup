@@ -42,7 +42,6 @@ from config.settings import (
 from tools.file_tools import FileReadTool, FileWriteTool
 from workflows.status_handler import StatusHandler
 from workflows.exception_handler import ExceptionHandler
-from workflows.agent_coordinator import AgentCoordinator, create_agent_coordinator
 
 
 class ProjektledareAgent:
@@ -70,6 +69,8 @@ class ProjektledareAgent:
     """
     
     def __init__(self):
+        from workflows.agent_coordinator import create_agent_coordinator
+
         """Initialize the Projektledare with domain knowledge and tools."""
         self.status_handler = StatusHandler()
         self.exception_handler = ExceptionHandler(self.status_handler)
