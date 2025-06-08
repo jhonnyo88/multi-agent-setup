@@ -196,7 +196,181 @@ class AgentCoordinator:
         return None
 
     def get_team_status(self) -> Dict[str, Any]:
-        return {"total_stories": len(self.active_stories)}
+        """
+        Get comprehensive status for the entire team.
+        
+        Returns:
+            Team status dict with detailed metrics
+        """
+        try:
+            # Count stories by status
+            story_status_counts = {}
+            for story in self.active_stories.values():
+                status = story.overall_status
+                story_status_counts[status] = story_status_counts.get(status, 0) + 1
+            
+            # Count tasks by agent
+            agent_workload = {}
+            for story in self.active_stories.values():
+                for task in story.tasks:
+                    agent_name = task.agent_name
+                    if agent_name not in agent_workload:
+                        agent_workload[agent_name] = 0
+                    if task.status in ["assigned", "queued", "in_progress"]:
+                        agent_workload[agent_name] += 1
+            
+            # Calculate overall metrics
+            total_stories = len(self.active_stories)
+            active_stories = story_status_counts.get("active", 0)
+            completed_stories = story_status_counts.get("completed", 0)
+            blocked_stories = story_status_counts.get("blocked", 0)
+            
+            return {
+                "timestamp": datetime.now().isoformat(),
+                "total_stories": total_stories,
+                "active_stories": active_stories,
+                "completed_stories": completed_stories,
+                "blocked_stories": blocked_stories,
+                "queued_tasks": len(self.task_queue),
+                "story_status_breakdown": story_status_counts,
+                "agent_workload": agent_workload,
+                "coordination_health": "healthy" if blocked_stories == 0 else "attention_needed",
+                "average_completion_rate": completed_stories / total_stories if total_stories > 0 else 0.0
+            }
+            
+        except Exception as e:
+            logger.error(f"Error getting team status: {e}")
+            return {
+                "timestamp": datetime.now().isoformat(),
+                "total_stories": len(self.active_stories),
+                "error": str(e)
+            }
+
+    def get_story_status(self, story_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Get detailed status for a specific story.
+        
+        Args:
+            story_id: ID of the story to check
+            
+        Returns:
+            Story status dict or None if story not found
+        """
+        try:
+            story = self.active_stories.get(story_id)
+            if not story:
+                logger.warning(f"Story {story_id} not found in active stories")
+                return None
+            
+            # Count tasks by status
+            task_status_counts = {}
+            for task in story.tasks:
+                status = task.status
+                task_status_counts[status] = task_status_counts.get(status, 0) + 1
+            
+            # Get current task (next in sequence)
+            current_task = None
+            for task in story.tasks:
+                if task.status in ["assigned", "queued", "in_progress"]:
+                    current_task = task
+                    break
+            
+            return {
+                "story_id": story.story_id,
+                "title": story.title,
+                "description": story.description,
+                "story_type": story.story_type,
+                "overall_status": story.overall_status,
+                "current_phase": story.current_phase,
+                "completion_percentage": story.completion_percentage,
+                "created_at": story.created_at.isoformat(),
+                "task_count": len(story.tasks),
+                "task_status_counts": task_status_counts,
+                "current_task": {
+                    "task_id": current_task.task_id,
+                    "agent_name": current_task.agent_name,
+                    "task_type": current_task.task_type,
+                    "status": current_task.status
+                } if current_task else None,
+                "artifacts": story.artifacts,
+                "tasks": [
+                    {
+                        "task_id": task.task_id,
+                        "agent_name": task.agent_name,
+                        "task_type": task.task_type,
+                        "status": task.status,
+                        "assigned_at": task.assigned_at.isoformat(),
+                        "dependencies": task.dependencies,
+                        "error_message": task.error_message
+                    }
+                    for task in story.tasks
+                ]
+            }
+            
+        except Exception as e:
+            logger.error(f"Error getting story status for {story_id}: {e}")
+            return None
+
+    def get_agent_status(self, agent_name: str) -> Dict[str, Any]:
+        """
+        Get status for a specific agent.
+        
+        Args:
+            agent_name: Name of the agent to check
+            
+        Returns:
+            Agent status dict
+        """
+        try:
+            # Count tasks assigned to this agent across all stories
+            assigned_tasks = []
+            active_tasks = []
+            completed_tasks = []
+            failed_tasks = []
+            
+            for story in self.active_stories.values():
+                for task in story.tasks:
+                    if task.agent_name == agent_name:
+                        assigned_tasks.append(task)
+                        
+                        if task.status == "in_progress":
+                            active_tasks.append(task)
+                        elif task.status == "completed":
+                            completed_tasks.append(task)
+                        elif task.status == "failed":
+                            failed_tasks.append(task)
+            
+            return {
+                "agent_name": agent_name,
+                "total_tasks": len(assigned_tasks),
+                "active_tasks": len(active_tasks),
+                "completed_tasks": len(completed_tasks),
+                "failed_tasks": len(failed_tasks),
+                "task_queue_size": len([t for t in self.task_queue if t.agent_name == agent_name]),
+                "current_workload": len(active_tasks),
+                "efficiency_rate": len(completed_tasks) / len(assigned_tasks) if assigned_tasks else 0.0,
+                "recent_tasks": [
+                    {
+                        "task_id": task.task_id,
+                        "story_id": task.story_id,
+                        "task_type": task.task_type,
+                        "status": task.status,
+                        "assigned_at": task.assigned_at.isoformat()
+                    }
+                    for task in sorted(assigned_tasks, key=lambda t: t.assigned_at, reverse=True)[:5]
+                ]
+            }
+            
+        except Exception as e:
+            logger.error(f"Error getting agent status for {agent_name}: {e}")
+            return {
+                "agent_name": agent_name,
+                "error": str(e),
+                "total_tasks": 0,
+                "active_tasks": 0,
+                "completed_tasks": 0,
+                "failed_tasks": 0
+            }
 
 def create_agent_coordinator() -> AgentCoordinator:
     return AgentCoordinator()
