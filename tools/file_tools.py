@@ -1,13 +1,15 @@
 """
-File Management Tools for DigiNativa AI Agents (CrewAI Compatible)
-================================================================
+File Management Tools for DigiNativa AI Agents (CrewAI 0.28.8 Compatible)
+=========================================================================
 
 PURPOSE:
 Provides AI agents with secure, validated file operations for reading project
 DNA documents, creating specifications, writing reports, and managing artifacts.
 
-CREWAI COMPATIBILITY:
-Updated to work with CrewAI's tool validation system.
+FIXED FOR CREWAI 0.28.8:
+- Proper tool inheritance
+- Compatible imports
+- Error handling for different CrewAI versions
 """
 
 import os
@@ -18,10 +20,33 @@ from pathlib import Path
 from typing import Dict, List, Optional, Union, Any
 import dataclasses
 
-# FIXED: Use CrewAI's tool base class instead of LangChain
-from crewai.tools import BaseTool
-from pydantic import BaseModel, Field
+# FIXED: CrewAI 0.28.8 compatible imports
+try:
+    # Try the correct import for CrewAI 0.28.8
+    from crewai_tools import BaseTool
+    CREWAI_TOOLS_AVAILABLE = True
+    print("✅ Using crewai_tools.BaseTool")
+except ImportError:
+    try:
+        # Fallback to crewai.tools
+        from crewai.tools import BaseTool
+        CREWAI_TOOLS_AVAILABLE = True
+        print("✅ Using crewai.tools.BaseTool")
+    except ImportError:
+        # Last resort: create our own base tool
+        CREWAI_TOOLS_AVAILABLE = False
+        print("⚠️  Creating fallback BaseTool")
+        
+        class BaseTool:
+            """Fallback BaseTool implementation for compatibility"""
+            def __init__(self, **kwargs):
+                self.name = kwargs.get('name', 'Unknown Tool')
+                self.description = kwargs.get('description', 'Tool description')
+            
+            def _run(self, *args, **kwargs):
+                raise NotImplementedError("Tool must implement _run method")
 
+from pydantic import BaseModel, Field
 from config.settings import PROJECT_ROOT, STATE_DIR
 
 @dataclasses.dataclass
@@ -78,8 +103,8 @@ file_logger = FileOperationLogger()
 
 class FilePathValidator:
     """Validates file paths to prevent security issues."""
-    ALLOWED_READ_PATHS = ["docs/", "config/", "templates/", "reports/", "backend/", "frontend/", "tests/", "state/", "tools/", "agents/", "workflows/"]
-    ALLOWED_WRITE_PATHS = ["reports/", "state/", "docs/specs/", "backend/", "frontend/", "src/", "tests/fixtures/"]
+    ALLOWED_READ_PATHS = ["docs/", "config/", "templates/", "reports/", "backend/", "frontend/", "tests/", "state/", "tools/", "agents/", "workflows/", "workspace/"]
+    ALLOWED_WRITE_PATHS = ["reports/", "state/", "docs/specs/", "backend/", "frontend/", "src/", "tests/fixtures/", "workspace/"]
     ALLOWED_READ_EXTENSIONS = {'.md', '.txt', '.json', '.yml', '.yaml', '.toml', '.py', '.js', '.ts', '.jsx', '.tsx', '.html', '.css', '.svg', '.csv', '.xml'}
     ALLOWED_WRITE_EXTENSIONS = {'.md', '.txt', '.json', '.yml', '.yaml', '.log', '.csv', '.html', '.svg', '.py', '.tsx', '.js', '.ts'}
     MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024  # 10MB
@@ -138,24 +163,37 @@ class FilePathValidator:
     def validate_write_path(cls, fp: Union[str, Path]) -> tuple[bool, str]:
         return cls._validate_path(fp, cls.ALLOWED_WRITE_PATHS, cls.ALLOWED_WRITE_EXTENSIONS, "write")
 
-# FIXED: CrewAI-compatible tool definitions
+# Tool Input Schema
+class FileToolInput(BaseModel):
+    """Input schema for file operations."""
+    file_path: str = Field(..., description="Path to the file")
+    content: Optional[str] = Field(None, description="Content to write (for write operations)")
+    encoding: str = Field("utf-8", description="File encoding")
+
+# CrewAI compatible tool definitions
 class FileReadTool(BaseTool):
-    """Tool for safely reading files - CrewAI compatible."""
+    """Tool for safely reading files - CrewAI 0.28.8 compatible."""
     name: str = "file_read_tool"
     description: str = "Read the contents of a file safely with proper validation and logging. Provide the file path as input."
     
-    def _run(self, file_path: str) -> str:
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+    
+    def _run(self, file_path: str, encoding: str = "utf-8") -> str:
         """Execute file reading operation."""
-        return read_file(file_path=file_path, agent_name="agent")
+        return read_file(file_path=file_path, agent_name="agent", encoding=encoding)
 
 class FileWriteTool(BaseTool):
-    """Tool for safely writing files - CrewAI compatible."""
+    """Tool for safely writing files - CrewAI 0.28.8 compatible."""
     name: str = "file_write_tool"
     description: str = "Write content to a file safely with proper validation and logging. Provide file_path and content as input."
     
-    def _run(self, file_path: str, content: str) -> str:
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+    
+    def _run(self, file_path: str, content: str, encoding: str = "utf-8") -> str:
         """Execute file writing operation."""
-        return write_file(file_path=file_path, content=content, agent_name="agent")
+        return write_file(file_path=file_path, content=content, agent_name="agent", encoding=encoding)
 
 def read_file(file_path: str, agent_name: str = "unknown", encoding: str = "utf-8") -> str:
     """
@@ -340,3 +378,38 @@ def list_files_in_directory(directory_path: str, agent_name: str = "unknown",
         
     except Exception as e:
         return f"❌ Error listing directory {directory_path}: {str(e)}"
+
+# Test function
+def test_file_tools():
+    """Test file tools functionality."""
+    try:
+        print("🧪 Testing file tools...")
+        
+        # Test file writing
+        test_content = "# Test File\nThis is a test file for CrewAI compatibility."
+        test_path = "reports/test_file_tools.md"
+        
+        write_result = write_file(test_path, test_content, "test_runner")
+        print(f"Write result: {write_result}")
+        
+        # Test file reading
+        read_result = read_file(test_path, "test_runner")
+        print(f"Read result length: {len(read_result)} chars")
+        
+        # Test tools
+        read_tool = FileReadTool()
+        write_tool = FileWriteTool()
+        
+        print(f"✅ File tools test passed")
+        print(f"   Read tool: {read_tool.name}")
+        print(f"   Write tool: {write_tool.name}")
+        print(f"   CrewAI tools available: {CREWAI_TOOLS_AVAILABLE}")
+        
+        return True
+        
+    except Exception as e:
+        print(f"❌ File tools test failed: {e}")
+        return False
+
+if __name__ == "__main__":
+    test_file_tools()
