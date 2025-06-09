@@ -92,12 +92,7 @@ class TestutvecklareAgent:
             av hur systemet är tänkt att fungera.
             """,
 
-            tools=[
-                FileReadTool(),
-                FileWriteTool(),
-                AcceptanceCriteriaValidatorTool(), # För att validera inkommande specs
-                # TODO: Lägg till GitTool för att checka in tester i samma branch som koden
-            ],
+            tools=[],
             llm=claude_llm,
             verbose=True,
             allow_delegation=False, # Testskrivandet delegeras inte

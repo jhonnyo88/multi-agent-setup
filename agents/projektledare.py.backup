@@ -1,14 +1,11 @@
 """
-DigiNativa Projektledare Agent (Anthropic/Claude Version) - COMPLETE FIXED VERSION
-==================================================================================
+DigiNativa Projektledare Agent (Anthropic/Claude Version) - Komplett fungerande
+===============================================================================
 
 PURPOSE:
 The Projektledare (Project Manager) is the central orchestrator of the DigiNativa AI team.
 It manages GitHub Issues, coordinates between agents, handles exceptions, and ensures
 all work follows the project's DNA documents and workflows.
-
-FIXED: Lazy loading of agent coordinator to prevent circular imports.
-ALL ORIGINAL METHODS PRESERVED.
 
 ANTHROPIC/CLAUDE INTEGRATION:
 - Uses Claude-3.5-Sonnet for intelligent decision making
@@ -22,7 +19,7 @@ DEPENDENCIES:
 - Project DNA documents for decision-making guidance
 - State management system for tracking story progress
 """
-
+# from workflows.github_integration.project_owner_communication import ProjectOwnerCommunication #bortkommenterad under tester
 import os
 import json
 import asyncio
@@ -32,9 +29,10 @@ from typing import Dict, List, Optional, Any
 from pathlib import Path
 from workflows.github_integration.project_owner_communication import ProjectOwnerCommunication
 
+
 # CrewAI imports
 from crewai import Agent, Task, Crew
-from langchain_anthropic import ChatAnthropic
+from langchain_anthropic import ChatAnthropic # Changed import
 
 # Project imports
 from config.settings import (
@@ -49,8 +47,6 @@ from workflows.exception_handler import ExceptionHandler
 class ProjektledareAgent:
     """
     The central orchestrator agent for the DigiNativa AI team.
-    
-    FIXED: Lazy loading of agent coordinator to prevent circular imports.
     
     ROLE DEFINITION:
     Acts as the "operating system" for the AI team, ensuring all agents work
@@ -73,6 +69,8 @@ class ProjektledareAgent:
     """
     
     def __init__(self):
+        from workflows.agent_coordinator import create_agent_coordinator
+
         """Initialize the Projektledare with domain knowledge and tools."""
         self.status_handler = StatusHandler()
         self.exception_handler = ExceptionHandler(self.status_handler)
@@ -80,9 +78,7 @@ class ProjektledareAgent:
         self.claude_llm = self._create_claude_llm()
         self.agent = self._create_agent()
         self.github_comm = ProjectOwnerCommunication()  # GitHub communication
-        
-        # FIXED: Lazy loading - coordinator created when first accessed
-        self._agent_coordinator = None
+        self.agent_coordinator = create_agent_coordinator()  # Agent coordination
         
         # Domain context for the project
         self.domain_context = {
@@ -99,31 +95,10 @@ class ProjektledareAgent:
             "ai_model": "claude-3-5-sonnet (Anthropic)"
         }
 
-        print("🎯 Projektledare initialized successfully")
+        
+        print("🎯 Projektledare initialized with agent coordination")
         print(f"   API: Anthropic")
         print(f"   Model: {AGENT_CONFIG['llm_model']}")
-        print(f"   Coordinator: Lazy loading (will initialize when needed)")
-    
-    @property
-    def agent_coordinator(self):
-        """
-        LAZY LOADING: Create agent coordinator only when first accessed.
-        
-        This prevents circular imports during initialization.
-        """
-        if self._agent_coordinator is None:
-            print("🔄 Lazy loading agent coordinator...")
-            try:
-                # Import here to avoid circular dependency
-                from workflows.agent_coordinator import create_agent_coordinator
-                self._agent_coordinator = create_agent_coordinator()
-                print("✅ Agent coordinator initialized successfully")
-            except Exception as e:
-                print(f"⚠️  Agent coordinator failed to initialize: {e}")
-                print("   Projektledare will work in standalone mode")
-                self._agent_coordinator = None
-        
-        return self._agent_coordinator
     
     def _create_claude_llm(self) -> ChatAnthropic:
         """
@@ -147,7 +122,10 @@ class ProjektledareAgent:
                 model=AGENT_CONFIG["llm_model"],
                 api_key=anthropic_api_key,
                 temperature=AGENT_CONFIG["temperature"],
-                max_tokens_to_sample=4000,
+                max_tokens_to_sample=4000,  # Changed from max_tokens
+                # System prompt removed from here, handled by Agent's backstory/role/goal
+                # system="You are an expert AI project manager specializing in software development coordination. "
+                #        "You excel at breaking down complex requirements, coordinating teams, and ensuring quality delivery."
             )
             
             print(f"✅ Claude LLM configured successfully")
@@ -865,10 +843,6 @@ class ProjektledareAgent:
                     )
                     stories_created = story_issues
                     print(f"✅ Created {len(story_issues)} story issues on GitHub")
-                    
-                    # Step 5: Delegate to team (if coordinator available)
-                    delegation_result = await self.delegate_stories_to_team(stories)
-                    print(f"🎯 Team delegation: {delegation_result['coordination_active']}")
                 else:
                     print("⚠️  No stories were created")
             else:
@@ -1090,69 +1064,44 @@ class ProjektledareAgent:
                 "delegated_stories": [],
                 "failed_delegations": [],
                 "total_stories": len(stories),
-                "coordination_active": bool(self.agent_coordinator)
+                "coordination_active": True
             }
             
             print(f"📋 Delegating {len(stories)} stories to AI team...")
             
-            # Check if coordinator is available
-            if self.agent_coordinator:
-                print("🎯 Using agent coordinator for delegation")
-                
-                for story in stories:
-                    try:
-                        # Prepare story data for coordinator
-                        story_data = {
-                            "story_id": story.get("story_id"),
-                            "title": story.get("title"),
-                            "description": story.get("description"),
-                            "story_type": self._determine_story_type(story),
-                            "assigned_agent": story.get("assigned_agent"),
-                            "acceptance_criteria": story.get("acceptance_criteria", []),
-                            "estimated_effort": story.get("estimated_effort"),
-                            "user_value": story.get("user_value", ""),
-                            "design_principles_addressed": story.get("design_principles_addressed", [])
-                        }
-                        
-                        # Delegate through coordinator
-                        await self.agent_coordinator.delegate_story(story_data)
-                        
-                        delegation_results["delegated_stories"].append({
-                            "story_id": story.get("story_id"),
-                            "delegated_at": datetime.now().isoformat(),
-                            "coordination_active": True
-                        })
-                        
-                        print(f"✅ Story {story.get('story_id')} delegated successfully")
-                        
-                    except Exception as e:
-                        print(f"❌ Failed to delegate story {story.get('story_id', 'unknown')}: {e}")
-                        delegation_results["failed_delegations"].append({
-                            "story_id": story.get("story_id"),
-                            "error": str(e),
-                            "failed_at": datetime.now().isoformat()
-                        })
-            else:
-                print("⚠️  Agent coordinator not available, using basic delegation")
-                
-                # Fallback: Basic delegation tracking without active coordination
-                for story in stories:
-                    try:
-                        # Just track the delegation without actual coordination
-                        await self.delegate_story_to_agent(story)
-                        
-                        delegation_results["delegated_stories"].append({
-                            "story_id": story.get("story_id"),
-                            "delegated_at": datetime.now().isoformat(),
-                            "coordination_active": False
-                        })
-                        
-                    except Exception as e:
-                        delegation_results["failed_delegations"].append({
-                            "story_id": story.get("story_id"),
-                            "error": str(e),
-                            "failed_at": datetime.now().isoformat()
-                        })
+            for story in stories:
+                try:
+                    # Prepare story data for coordinator
+                    story_data = {
+                        "story_id": story.get("story_id"),
+                        "title": story.get("title"),
+                        "description": story.get("description"),
+                        "story_type": self._determine_story_type(story),
+                        "assigned_agent": story.get("assigned_agent"),
+                        "acceptance_criteria": story.get("acceptance_criteria", []),
+                        "estimated_effort": story.get("estimated_effort"),
+                        "user_value": story.get("user_value", ""),
+                        "design_principles_addressed": story.get("design_principles_addressed", [])
+                    }
+                    
+                    # Delegate through coordinator
+                    delegated_story_id = await self.agent_coordinator.delegate_story(story_data)
+                    
+                    delegation_results["delegated_stories"].append({
+                        "story_id": delegated_story_id,
+                        "delegated_at": datetime.now().isoformat(),
+                        "coordination_active": True
+                    })
+                    
+                    print(f"✅ Story {delegated_story_id} delegated successfully")
+                    
+                except Exception as e:
+                    print(f"❌ Failed to delegate story {story.get('story_id', 'unknown')}: {e}")
+                    delegation_results["failed_delegations"].append({
+                        "story_id": story.get("story_id"),
+                        "error": str(e),
+                        "failed_at": datetime.now().isoformat()
+                    })
             
             # Report delegation results
             self.status_handler.report_status(
@@ -1161,7 +1110,7 @@ class ProjektledareAgent:
                 payload={
                     "delegated_count": len(delegation_results["delegated_stories"]),
                     "failed_count": len(delegation_results["failed_delegations"]),
-                    "coordination_system": "active" if self.agent_coordinator else "fallback",
+                    "coordination_system": "active",
                     "ai_model": "claude-3-5-sonnet"
                 }
             )
@@ -1171,6 +1120,7 @@ class ProjektledareAgent:
             
         except Exception as e:
             print(f"❌ Team delegation failed: {e}")
+            report_error("projektledare", "TEAM_DELEGATION_FAILED", str(e))
             return {
                 "delegated_stories": [],
                 "failed_delegations": [],
@@ -1210,47 +1160,32 @@ class ProjektledareAgent:
         try:
             print("📊 Monitoring team progress...")
             
-            # Get overall team status (if coordinator available)
-            if self.agent_coordinator:
-                team_status = self.agent_coordinator.get_team_status()
-                
-                # Get detailed status for each active story
-                story_details = []
-                for story_id in self.agent_coordinator.active_stories.keys():
-                    story_status = self.agent_coordinator.get_story_status(story_id)
-                    if story_status:
-                        story_details.append(story_status)
-                
-                # Analyze team performance
-                performance_metrics = self._analyze_team_performance(story_details)
-                
-                progress_report = {
-                    "timestamp": datetime.now().isoformat(),
-                    "team_overview": team_status,
-                    "story_details": story_details,
-                    "performance_metrics": performance_metrics,
-                    "recommendations": self._generate_team_recommendations(team_status, story_details),
-                    "coordination_active": True
-                }
-                
-                print(f"📈 Team Progress Summary:")
-                print(f"   Active Stories: {team_status['active_stories']}")
-                print(f"   Completed Stories: {team_status['completed_stories']}")
-                print(f"   Blocked Stories: {team_status['blocked_stories']}")
-                print(f"   Queued Tasks: {team_status['queued_tasks']}")
-                
-            else:
-                # Fallback: Basic progress monitoring
-                progress_report = {
-                    "timestamp": datetime.now().isoformat(),
-                    "coordination_active": False,
-                    "current_stories": len(self.current_stories),
-                    "note": "Full team monitoring requires agent coordinator"
-                }
-                
-                print(f"📈 Basic Progress Summary:")
-                print(f"   Tracked Stories: {len(self.current_stories)}")
-                print(f"   Coordination: Not active")
+            # Get overall team status
+            team_status = self.agent_coordinator.get_team_status()
+            
+            # Get detailed status for each active story
+            story_details = []
+            for story_id in self.agent_coordinator.active_stories.keys():
+                story_status = self.agent_coordinator.get_story_status(story_id)
+                if story_status:
+                    story_details.append(story_status)
+            
+            # Analyze team performance
+            performance_metrics = self._analyze_team_performance(story_details)
+            
+            progress_report = {
+                "timestamp": datetime.now().isoformat(),
+                "team_overview": team_status,
+                "story_details": story_details,
+                "performance_metrics": performance_metrics,
+                "recommendations": self._generate_team_recommendations(team_status, story_details)
+            }
+            
+            print(f"📈 Team Progress Summary:")
+            print(f"   Active Stories: {team_status['active_stories']}")
+            print(f"   Completed Stories: {team_status['completed_stories']}")
+            print(f"   Blocked Stories: {team_status['blocked_stories']}")
+            print(f"   Queued Tasks: {team_status['queued_tasks']}")
             
             return progress_report
             
@@ -1326,7 +1261,7 @@ class ProjektledareAgent:
         # Identify overloaded agents
         for agent, counts in agent_task_counts.items():
             total_active = counts.get("in_progress", 0) + counts.get("queued", 0)
-            max_concurrent = 1  # Default max concurrent tasks
+            max_concurrent = self.agent_coordinator.agent_capabilities.get(agent, {}).get("max_concurrent_tasks", 1)
             
             if total_active > max_concurrent * 1.5:  # 50% over capacity
                 bottlenecks.append(f"Agent {agent} is overloaded ({total_active} tasks)")
@@ -1417,14 +1352,12 @@ class ProjektledareAgent:
         if not story_id:
             return
         
-        # Only update if coordinator is available
-        if self.agent_coordinator:
-            story_status = self.agent_coordinator.get_story_status(story_id)
-            if story_status:
-                # Log progress milestone
-                if story_status["completion_percentage"] in [0.25, 0.5, 0.75, 1.0]:
-                    milestone = f"{story_status['completion_percentage']:.0%}"
-                    print(f"🎯 Story {story_id} reached {milestone} completion")
+        story_status = self.agent_coordinator.get_story_status(story_id)
+        if story_status:
+            # Log progress milestone
+            if story_status["completion_percentage"] in [0.25, 0.5, 0.75, 1.0]:
+                milestone = f"{story_status['completion_percentage']:.0%}"
+                print(f"🎯 Story {story_id} reached {milestone} completion")
 
     async def get_team_dashboard(self) -> Dict[str, Any]:
         """
@@ -1490,46 +1423,195 @@ class ProjektledareAgent:
         """Get upcoming deliverables for project planning."""
         deliverables = []
         
-        # Check active stories for expected completion (if coordinator available)
-        if self.agent_coordinator:
-            for story_id in self.agent_coordinator.active_stories.keys():
-                story = self.agent_coordinator.active_stories[story_id]
-                if story.overall_status == "active":
-                    # Estimate completion time based on remaining tasks
-                    remaining_tasks = [t for t in story.tasks if t.status in ["assigned", "in_progress"]]
-                    if remaining_tasks:
-                        # Simple estimation - this could be more sophisticated
-                        estimated_hours = len(remaining_tasks) * 4
-                        estimated_completion = datetime.now() + timedelta(hours=estimated_hours)
-                        
-                        deliverables.append({
-                            "story_id": story_id,
-                            "title": story.title,
-                            "estimated_completion": estimated_completion.isoformat(),
-                            "confidence": "medium",
-                            "remaining_tasks": len(remaining_tasks)
-                        })
+        # Check active stories for expected completion
+        for story_id in self.agent_coordinator.active_stories.keys():
+            story = self.agent_coordinator.active_stories[story_id]
+            if story.overall_status == "active":
+                # Estimate completion time based on remaining tasks
+                remaining_tasks = [t for t in story.tasks if t.status in ["assigned", "in_progress"]]
+                if remaining_tasks:
+                    # Simple estimation - this could be more sophisticated
+                    estimated_hours = len(remaining_tasks) * 4
+                    estimated_completion = datetime.now() + timedelta(hours=estimated_hours)
+                    
+                    deliverables.append({
+                        "story_id": story_id,
+                        "title": story.title,
+                        "estimated_completion": estimated_completion.isoformat(),
+                        "confidence": "medium",
+                        "remaining_tasks": len(remaining_tasks)
+                    })
         
         return sorted(deliverables, key=lambda x: x["estimated_completion"])
-
 
 # Factory function to create and configure the Projektledare agent
 def create_projektledare() -> ProjektledareAgent:
     """
-    FIXED: Create Projektledare with lazy loading to prevent circular imports.
+    Enhanced factory function that creates Projektledare with agent coordination.
     
-    This replaces the old create_projektledare() function completely.
+    REPLACE YOUR EXISTING create_projektledare() WITH THIS VERSION:
     """
-    print("🚀 Initializing Projektledare (with lazy coordinator loading)...")
+    print("🚀 Initializing Projektledare with agent coordination...")
     
     try:
-        agent = ProjektledareAgent()
-        print(f"✅ Projektledare initialized successfully for {PROJECT_NAME}")
-        print(f"   Agent coordination: Available on demand (lazy loading)")
-        print(f"   GitHub communication: Active")
-        print(f"   Claude LLM: Configured")
+        agent = ProjektledareAgent()  # This will now include coordinator
+        print(f"✅ Projektledare with coordination initialized for {PROJECT_NAME}")
+        print(f"   AI Team Coordination: Active")
+        print(f"   Agent Capabilities: {len(agent.agent_coordinator.agent_capabilities)} agents")
+        print(f"   Workflow Sequences: {len(agent.agent_coordinator.workflow_sequences)} defined")
         return agent
         
     except Exception as e:
-        print(f"❌ Failed to initialize Projektledare: {e}")
+        print(f"❌ Failed to initialize Projektledare with coordination: {e}")
         raise
+
+# USAGE EXAMPLE FOR TESTING:
+async def test_agent_coordination():
+    """
+    Test function to verify agent coordination works.
+    
+    ADD THIS TO A SEPARATE TEST FILE TO VERIFY THE INTEGRATION:
+    """
+    try:
+        print("🧪 Testing agent coordination integration...")
+        
+        # Create Projektledare with coordination
+        projektledare = create_projektledare()
+        
+        # Create a test story
+        test_story = {
+            "story_id": "STORY-COORD-TEST-001",
+            "title": "Test Agent Coordination",
+            "description": "Test story to verify coordination system",
+            "assigned_agent": "speldesigner",
+            "story_type": "specification",
+            "acceptance_criteria": ["System delegates task", "Status is tracked"],
+            "estimated_effort": "Small"
+        }
+        
+        # Test delegation
+        delegation_result = await projektledare.delegate_stories_to_team([test_story])
+        print(f"Delegation result: {delegation_result}")
+        
+        # Test monitoring
+        team_status = await projektledare.monitor_team_progress()
+        print(f"Team status: {team_status['team_overview']}")
+        
+        # Test dashboard
+        dashboard = await projektledare.get_team_dashboard()
+        print(f"Dashboard generated with {len(dashboard)} sections")
+        
+        print("✅ Agent coordination integration test completed!")
+        return True
+        
+    except Exception as e:
+        print(f"❌ Agent coordination test failed: {e}")
+        return False
+
+async def process_github_issue_complete_workflow(issue_number: int) -> Dict[str, Any]:
+    """
+    Convenience function to process a GitHub issue through the complete AI workflow.
+    
+    This is perfect for testing and for external scripts that want to trigger
+    the full AI team process on a specific GitHub issue.
+    
+    Args:
+        issue_number: GitHub issue number to process
+        
+    Returns:
+        Complete workflow results
+        
+    Usage:
+        results = await process_github_issue_complete_workflow(123)
+    """
+    try:
+        # Create GitHub communication system
+        github_comm = ProjectOwnerCommunication()
+        
+        # Fetch the specific issue
+        repo = github_comm.github.ai_repo
+        issue = repo.get_issue(issue_number)
+        
+        # Convert to our standard format
+        issue_data = {
+            "number": issue.number,
+            "title": issue.title,
+            "body": issue.body or "",
+            "labels": [{"name": label.name} for label in issue.labels],
+            "user": {"login": issue.user.login},
+            "state": issue.state,
+            "created_at": issue.created_at.isoformat(),
+            "updated_at": issue.updated_at.isoformat(),
+            "url": issue.html_url,
+            "github_issue": issue  # Keep reference for updates
+        }
+        
+        # Create Projektledare and run complete workflow
+        projektledare = create_projektledare()
+        results = await projektledare.process_github_feature_and_update(issue_data)
+        
+        return results
+        
+    except Exception as e:
+        print(f"❌ Failed to process GitHub issue #{issue_number}: {e}")
+        return {
+            "error": str(e),
+            "issue_number": issue_number,
+            "completed_at": datetime.now().isoformat()
+        }
+
+if __name__ == "__main__":
+    # Test script for debugging and development
+    import asyncio
+    
+    async def test_projektledare():
+        """Test script for Projektledare functionality with Claude."""
+        print("🧪 Testing Projektledare agent with Claude-3.5-Sonnet...")
+        
+        # Create agent
+        projektledare = create_projektledare()
+        
+        # Mock GitHub issue for testing (DigiNativa-specific)
+        test_issue = {
+            "number": 123,
+            "title": "Add user progress tracking",
+            "body": """
+            ## Feature Description
+            Users should be able to see their learning progress through the digitalization strategy game.
+            
+            ## User Story
+            As Anna (public sector employee), I want to see my progress so I can understand 
+            how much I've learned about digitalization strategy.
+            
+            ## Acceptance Criteria
+            - [ ] Display progress bar showing completion percentage
+            - [ ] Show which topics have been completed  
+            - [ ] Indicate time spent learning
+            - [ ] Allow resuming from previous session
+            - [ ] Progress persists between sessions
+            """,
+            "labels": [{"name": "feature"}, {"name": "enhancement"}],
+            "user": {"login": "test-user"}
+        }
+        
+        # Test feature analysis with Claude
+        print("\n📋 Testing feature analysis with Claude...")
+        analysis = await projektledare.analyze_feature_request(test_issue)
+        print(f"Analysis result keys: {list(analysis.keys())}")
+        
+        if analysis.get("recommendation", {}).get("action") == "approve":
+            print("✅ Feature approved by Claude analysis")
+            
+            # Test story breakdown with Claude
+            print("\n📝 Testing story breakdown with Claude...")
+            stories = await projektledare.create_story_breakdown(analysis, test_issue)
+            print(f"Created {len(stories)} stories with Claude")
+            for story in stories:
+                print(f"  - {story['story_id']}: {story['title']} (assigned to {story['assigned_agent']})")
+        else:
+            print(f"⚠️  Feature not approved: {analysis.get('recommendation', {}).get('action')}")
+        
+        print("\n✅ Projektledare testing with Claude complete!")
+    
+    # Run test if script is executed directly
+    asyncio.run(test_projektledare())
