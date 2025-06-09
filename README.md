@@ -93,7 +93,7 @@ Projektledare Agent
 ## Målbild flöde AI-teamutveckling
 
 graph TD
-    A[GitHub Issue Created] --> B[Projektledare: monitor_new_feature_requests]
+    A [GitHub Issue Created] --> B [Projektledare: monitor_new_feature_requests]
     B --> C{Feature Analysis with Claude}
     C --> D[DNA Alignment Check]
     D --> E[Technical Feasibility]
