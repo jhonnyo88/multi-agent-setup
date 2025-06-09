@@ -175,5 +175,3 @@ graph TD
     style U fill:#c8e6c9
     style AA fill:#ffcdd2
     style W fill:#fff3e0
-
-
