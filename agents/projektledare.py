@@ -1533,3 +1533,154 @@ def create_projektledare() -> ProjektledareAgent:
     except Exception as e:
         print(f"❌ Failed to initialize Projektledare: {e}")
         raise
+
+# USAGE EXAMPLE FOR TESTING:
+async def test_agent_coordination():
+    """
+    Test function to verify agent coordination works.
+    
+    ADD THIS TO A SEPARATE TEST FILE TO VERIFY THE INTEGRATION:
+    """
+    try:
+        print("🧪 Testing agent coordination integration...")
+        
+        # Create Projektledare with coordination
+        projektledare = create_projektledare()
+        
+        # Create a test story
+        test_story = {
+            "story_id": "STORY-COORD-TEST-001",
+            "title": "Test Agent Coordination",
+            "description": "Test story to verify coordination system",
+            "assigned_agent": "speldesigner",
+            "story_type": "specification",
+            "acceptance_criteria": ["System delegates task", "Status is tracked"],
+            "estimated_effort": "Small"
+        }
+        
+        # Test delegation
+        delegation_result = await projektledare.delegate_stories_to_team([test_story])
+        print(f"Delegation result: {delegation_result}")
+        
+        # Test monitoring
+        team_status = await projektledare.monitor_team_progress()
+        print(f"Team status: {team_status['team_overview']}")
+        
+        # Test dashboard
+        dashboard = await projektledare.get_team_dashboard()
+        print(f"Dashboard generated with {len(dashboard)} sections")
+        
+        print("✅ Agent coordination integration test completed!")
+        return True
+        
+    except Exception as e:
+        print(f"❌ Agent coordination test failed: {e}")
+        return False
+
+async def process_github_issue_complete_workflow(issue_number: int) -> Dict[str, Any]:
+    """
+    Convenience function to process a GitHub issue through the complete AI workflow.
+    
+    This is perfect for testing and for external scripts that want to trigger
+    the full AI team process on a specific GitHub issue.
+    
+    Args:
+        issue_number: GitHub issue number to process
+        
+    Returns:
+        Complete workflow results
+        
+    Usage:
+        results = await process_github_issue_complete_workflow(123)
+    """
+    try:
+        # Create GitHub communication system
+        github_comm = ProjectOwnerCommunication()
+        
+        # Fetch the specific issue
+        repo = github_comm.github.ai_repo
+        issue = repo.get_issue(issue_number)
+        
+        # Convert to our standard format
+        issue_data = {
+            "number": issue.number,
+            "title": issue.title,
+            "body": issue.body or "",
+            "labels": [{"name": label.name} for label in issue.labels],
+            "user": {"login": issue.user.login},
+            "state": issue.state,
+            "created_at": issue.created_at.isoformat(),
+            "updated_at": issue.updated_at.isoformat(),
+            "url": issue.html_url,
+            "github_issue": issue  # Keep reference for updates
+        }
+        
+        # Create Projektledare and run complete workflow
+        projektledare = create_projektledare()
+        results = await projektledare.process_github_feature_and_update(issue_data)
+        
+        return results
+        
+    except Exception as e:
+        print(f"❌ Failed to process GitHub issue #{issue_number}: {e}")
+        return {
+            "error": str(e),
+            "issue_number": issue_number,
+            "completed_at": datetime.now().isoformat()
+        }
+
+if __name__ == "__main__":
+    # Test script for debugging and development
+    import asyncio
+    
+    async def test_projektledare():
+        """Test script for Projektledare functionality with Claude."""
+        print("🧪 Testing Projektledare agent with Claude-3.5-Sonnet...")
+        
+        # Create agent
+        projektledare = create_projektledare()
+        
+        # Mock GitHub issue for testing (DigiNativa-specific)
+        test_issue = {
+            "number": 123,
+            "title": "Add user progress tracking",
+            "body": """
+            ## Feature Description
+            Users should be able to see their learning progress through the digitalization strategy game.
+            
+            ## User Story
+            As Anna (public sector employee), I want to see my progress so I can understand 
+            how much I've learned about digitalization strategy.
+            
+            ## Acceptance Criteria
+            - [ ] Display progress bar showing completion percentage
+            - [ ] Show which topics have been completed  
+            - [ ] Indicate time spent learning
+            - [ ] Allow resuming from previous session
+            - [ ] Progress persists between sessions
+            """,
+            "labels": [{"name": "feature"}, {"name": "enhancement"}],
+            "user": {"login": "test-user"}
+        }
+        
+        # Test feature analysis with Claude
+        print("\n📋 Testing feature analysis with Claude...")
+        analysis = await projektledare.analyze_feature_request(test_issue)
+        print(f"Analysis result keys: {list(analysis.keys())}")
+        
+        if analysis.get("recommendation", {}).get("action") == "approve":
+            print("✅ Feature approved by Claude analysis")
+            
+            # Test story breakdown with Claude
+            print("\n📝 Testing story breakdown with Claude...")
+            stories = await projektledare.create_story_breakdown(analysis, test_issue)
+            print(f"Created {len(stories)} stories with Claude")
+            for story in stories:
+                print(f"  - {story['story_id']}: {story['title']} (assigned to {story['assigned_agent']})")
+        else:
+            print(f"⚠️  Feature not approved: {analysis.get('recommendation', {}).get('action')}")
+        
+        print("\n✅ Projektledare testing with Claude complete!")
+    
+    # Run test if script is executed directly
+    asyncio.run(test_projektledare())
