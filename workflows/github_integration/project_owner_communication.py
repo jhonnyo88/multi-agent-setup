@@ -336,6 +336,186 @@ class GitHubIntegration:
         
         return comment
     
+    async def create_story_as_child_issue(self, parent_issue: Issue, story_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """
+        Create a story issue as child of parent feature issue.
+        
+        Uses GitHub's issue linking to establish parent-child relationship.
+        """
+        try:
+            # Create story title with parent reference
+            story_title = f"[STORY] {story_data['title']}"
+            
+            # Create story body with parent link
+            story_body = f"""## 📋 Story from Feature #{parent_issue.number}
+
+    **Parent Feature**: #{parent_issue.number} - {parent_issue.title}
+    **Story ID**: {story_data['story_id']}
+    **Assigned Agent**: {story_data['assigned_agent']}
+    **Story Type**: {story_data['story_type']}
+    **Estimated Effort**: {story_data['estimated_effort']}
+
+    ### 📝 Description
+    {story_data['description']}
+
+    ### ✅ Acceptance Criteria
+    """
+            
+            for criterion in story_data['acceptance_criteria']:
+                story_body += f"- [ ] {criterion}\n"
+            
+            if story_data.get('dependencies'):
+                story_body += f"\n### 🔗 Dependencies\n"
+                for dep in story_data['dependencies']:
+                    story_body += f"- {dep}\n"
+            
+            story_body += f"""
+    ### 🎯 Design Principles Addressed
+    {', '.join(story_data.get('design_principles_addressed', []))}
+
+    ### 🤖 AI Team Information
+    **Responsible Agent**: {story_data['assigned_agent']}
+    **Created by**: AI Projektledare
+    **Parent Feature**: #{parent_issue.number}
+
+    ---
+    *This story is part of automated workflow for Feature #{parent_issue.number}*
+    *Development will be tracked through linked pull requests*
+    """
+            
+            # Create the story issue
+            story_issue = self.project_repo.create_issue(
+                title=story_title,
+                body=story_body,
+                labels=[
+                    'story', 
+                    'ai-generated', 
+                    f'agent-{story_data["assigned_agent"]}',
+                    f'effort-{story_data["estimated_effort"].lower()}',
+                    f'parent-{parent_issue.number}'  # NEW: Parent tracking label
+                ]
+            )
+            
+            # Link story to parent using GitHub's development field
+            # This is done through issue comments with special keywords
+            link_comment = f"""**🔗 Linked to Parent Feature**
+
+    This story is part of #{parent_issue.number}
+
+    Development progress will be tracked through pull requests that reference both this story and the parent feature.
+    """
+            story_issue.create_comment(link_comment)
+            
+            # Update parent issue with child reference
+            parent_comment = f"""**📋 Story Created: #{story_issue.number}**
+
+    - **Story**: {story_data['story_id']} - {story_data['title']}
+    - **Agent**: {story_data['assigned_agent']}
+    - **Type**: {story_data['story_type']}
+    - **Link**: #{story_issue.number}
+    """
+            parent_issue.create_comment(parent_comment)
+            
+            print(f"✅ Created child story #{story_issue.number} linked to parent #{parent_issue.number}")
+            
+            return {
+                "story_id": story_data['story_id'],
+                "github_issue": story_issue,
+                "number": story_issue.number,
+                "url": story_issue.html_url,
+                "parent_issue_number": parent_issue.number,
+                "assigned_agent": story_data['assigned_agent']
+            }
+            
+        except Exception as e:
+            print(f"❌ Failed to create child story: {e}")
+            return None
+
+    async def monitor_project_repo_for_features(self) -> List[Dict[str, Any]]:
+        """Monitor project repository for ALL types of issues that AI should handle."""
+        try:
+            # Get ALL open issues with AI-relevant labels from PROJECT repo
+            ai_relevant_labels = [
+                'ai-team',           # General AI team issues
+                'feature',           # Feature requests
+                'enhancement',       # Enhancement requests  
+                'feature-approval',  # Approval requests
+                'escalation',        # Escalation requests
+                'bug'               # Bug reports that AI should handle
+            ]
+            
+            # Check for any issue with AI-relevant labels
+            issues = self.project_repo.get_issues(
+                state='open',
+                labels=ai_relevant_labels
+            )
+            
+            ai_actionable_issues = []
+            
+            for issue in issues:
+                # Determine issue type and if AI should act
+                issue_type = self._determine_issue_type(issue)
+                needs_ai_action = await self._check_if_ai_should_act(issue, issue_type)
+                
+                if needs_ai_action:
+                    ai_actionable_issues.append({
+                        "issue_type": issue_type,
+                        "number": issue.number,
+                        "title": issue.title,
+                        "body": issue.body or "",
+                        "labels": [{"name": label.name} for label in issue.labels],
+                        "user": {"login": issue.user.login},
+                        "state": issue.state,
+                        "created_at": issue.created_at.isoformat(),
+                        "updated_at": issue.updated_at.isoformat(),
+                        "url": issue.html_url,
+                        "github_issue": issue,
+                        "repository": "project_repo"
+                    })
+            
+            return ai_actionable_issues
+            
+        except Exception as e:
+            print(f"❌ Error monitoring project repo: {e}")
+            return []
+
+    def _determine_issue_type(self, issue) -> str:
+        """Determine what type of issue this is."""
+        title = issue.title.lower()
+        labels = [label.name.lower() for label in issue.labels]
+        
+        if any(label in labels for label in ['feature', 'enhancement']):
+            return "feature_request"
+        elif 'feature-approval' in labels or '[approval]' in title:
+            return "feature_approval"
+        elif 'escalation' in labels or '[escalation]' in title:
+            return "escalation_request"
+        elif 'bug' in labels:
+            return "bug_report"
+        else:
+            return "unknown"
+
+    async def _check_if_ai_should_act(self, issue, issue_type: str) -> bool:
+        """Check if AI team should take action on this issue."""
+        
+        # Always act on new feature requests
+        if issue_type == "feature_request":
+            return not await self._check_for_ai_analysis(issue)
+        
+        # Act on feature approvals that AI hasn't processed
+        elif issue_type == "feature_approval":
+            return not await self._check_for_ai_response(issue)
+        
+        # Act on escalations that need AI response
+        elif issue_type == "escalation_request":
+            return await self._check_if_escalation_needs_response(issue)
+        
+        # Act on bugs if configured to do so
+        elif issue_type == "bug_report":
+            return await self._check_if_bug_needs_ai_action(issue)
+        
+        return False
+
     async def _update_issue_labels(self, issue: Issue, analysis: Dict[str, Any]):
         """Update issue labels based on AI analysis results."""
         try:

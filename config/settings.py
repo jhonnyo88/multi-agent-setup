@@ -51,16 +51,26 @@ TARGET_AUDIENCE = {
 # ============================================================================
 
 GITHUB_CONFIG = {
-    "ai_team_repo": {
-        "owner": os.getenv("AI_TEAM_REPO_OWNER", "jhonnyo88"),
-        "name": os.getenv("AI_TEAM_REPO_NAME", "multi-agent-setup"),
-        "branch": "main"
-    },
     "project_repo": {
         "owner": os.getenv("PROJECT_REPO_OWNER", "jhonnyo88"),
         "name": os.getenv("PROJECT_REPO_NAME", "diginativa-game"),
-        "branch": "main"
+        "branch": "main",
+        "primary": True  # NEW: Mark as primary repo for features
+    },
+    "ai_team_repo": {
+        "owner": os.getenv("AI_TEAM_REPO_OWNER", "jhonnyo88"),
+        "name": os.getenv("AI_TEAM_REPO_NAME", "multi-agent-setup"),
+        "branch": "main",
+        "primary": False  # NEW: Secondary repo for team coordination
     }
+}
+
+# NEW: Feature monitoring configuration
+FEATURE_MONITORING = {
+    "source_repo": "project_repo",  # Monitor project repo for features
+    "feature_labels": ["feature", "enhancement"],
+    "auto_story_creation": True,
+    "link_stories_to_parent": True
 }
 
 # ============================================================================

@@ -536,6 +536,103 @@ class ProjektledareAgent:
             
             return []
 
+    async def create_story_breakdown_with_linking(self, feature_analysis: Dict[str, Any], 
+                                                github_issue: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """
+        ENHANCED: Create story breakdown with parent-child linking in GitHub.
+        
+        This method:
+        1. Calls the existing create_story_breakdown method
+        2. Creates GitHub issues for each story  
+        3. Links stories to parent feature issue
+        4. Returns list of created GitHub story issues
+        """
+        try:
+            print(f"📋 Creating linked story breakdown for feature: {github_issue.get('title', 'Unknown')}")
+            
+            # STEP 1: Use existing story breakdown logic
+            stories = await self.create_story_breakdown(feature_analysis, github_issue)
+            
+            if not stories:
+                print("⚠️  No stories were created")
+                return []
+            
+            # STEP 2: Create GitHub issues for each story with parent linking
+            created_story_issues = []
+            parent_issue = github_issue["github_issue"]
+            
+            print(f"🔗 Creating {len(stories)} story issues linked to parent #{parent_issue.number}")
+            
+            for story in stories:
+                print(f"  📝 Creating story issue: {story['story_id']}")
+                
+                story_issue = await self.github_comm.github.create_story_as_child_issue(
+                    parent_issue, story
+                )
+                
+                if story_issue:
+                    created_story_issues.append(story_issue)
+                    print(f"    ✅ Created #{story_issue['number']}")
+                else:
+                    print(f"    ❌ Failed to create story issue")
+            
+            # STEP 3: Update parent issue with summary of created stories
+            if created_story_issues:
+                await self._update_parent_issue_with_story_summary(parent_issue, created_story_issues)
+            
+            print(f"✅ Created {len(created_story_issues)} linked story issues")
+            return created_story_issues
+            
+        except Exception as e:
+            print(f"❌ Story breakdown with linking failed: {e}")
+            return []
+
+    async def _update_parent_issue_with_story_summary(self, parent_issue, story_issues: List[Dict[str, Any]]):
+        """Update parent feature issue with summary of all created stories."""
+        try:
+            from datetime import datetime
+            
+            summary_comment = f"""## 📋 Story Breakdown Complete
+
+    Created {len(story_issues)} implementation stories:
+
+    """
+            
+            for story_issue in story_issues:
+                summary_comment += f"- #{story_issue['number']}: {story_issue['story_id']} (→ {story_issue['assigned_agent']})\n"
+            
+            summary_comment += f"""
+    ### 🚀 Development Process
+    Stories will be implemented by AI agents in the following workflow:
+
+    1. **Speldesigner** creates UX specifications
+    2. **Utvecklare** implements backend and frontend code  
+    3. **Testutvecklare** creates automated tests
+    4. **QA-Testare** validates from user perspective
+    5. **Pull Requests** automatically close completed stories
+
+    ### 📊 Progress Tracking
+    - **Feature Progress**: Will be automatically updated as stories are completed
+    - **Pull Request Linking**: Each PR will reference relevant stories and this feature
+    - **Automatic Closure**: This feature will close when all stories are completed
+
+    ---
+    *Story breakdown created by AI Projektledare • {datetime.now().strftime('%Y-%m-%d %H:%M')}*
+    """
+            
+            parent_issue.create_comment(summary_comment)
+            
+            # Add progress tracking labels
+            try:
+                parent_issue.add_to_labels("stories-created", "in-development")
+            except Exception as label_error:
+                print(f"⚠️  Could not add labels: {label_error}")
+            
+            print(f"✅ Updated parent issue #{parent_issue.number} with story summary")
+            
+        except Exception as e:
+            print(f"⚠️  Could not update parent issue summary: {e}")
+
     def _calculate_total_effort(self, stories: List[Dict[str, Any]]) -> str:
         """Calculate total estimated effort for all stories."""
         effort_weights = {"Small": 1, "Medium": 2, "Large": 3}
@@ -856,7 +953,7 @@ class ProjektledareAgent:
             if analysis_result.get("recommendation", {}).get("action") == "approve":
                 print("📋 Step 3: Creating story breakdown...")
                 
-                stories = await self.create_story_breakdown(analysis_result, github_issue)
+                stories = await self.create_story_breakdown_with_linking(analysis_result, github_issue)
                 
                 if stories:
                     print("📝 Step 4: Creating GitHub issues for stories...")
@@ -1005,51 +1102,182 @@ class ProjektledareAgent:
         
     async def monitor_and_process_github_issues(self) -> List[Dict[str, Any]]:
         """
-        Priority Queue Workflow: Process features by priority and dependencies.
+        UPDATED: Monitor PROJECT REPOSITORY for feature requests and process them.
         
         This is the main entry point for automatic feature processing.
-        Now uses priority queue instead of roadmap-based planning.
+        Now monitors project repo (diginativa-game) instead of AI-team repo.
         
         Returns:
-            List of processed feature requests
+            List of processed feature requests from project repository
         """
         try:
-            print("🎯 Starting Priority Queue workflow...")
+            print("🎯 Starting Project Repository monitoring workflow...")
+            print("📍 Monitoring: diginativa-game repository for features")
             
-            processed_features = []
+            # NEW: Use project repo monitoring instead of AI-team repo
+            processed_features = await self.monitor_project_repo_features()
             
-            # Process features one by one until queue is empty or max limit reached
-            max_features_per_run = 3  # Prevent infinite loops
+            if not processed_features:
+                print("ℹ️  No new features found in project repository")
+                print("💡 Create a GitHub Issue in diginativa-game with labels: 'feature', 'enhancement'")
+                return []
             
-            for i in range(max_features_per_run):
-                print(f"\n--- Priority Queue Round {i+1} ---")
-                
-                # Get and process next available feature
-                result = await self.monitor_and_process_next_feature()
-                
-                if result:
-                    processed_features.append(result)
-                    print(f"✅ Processed feature #{result.get('analysis', {}).get('issue_id', 'unknown')}")
-                else:
-                    print("ℹ️  No more features available to process")
-                    break
-            
-            # Check for human feedback on completed features
+            # Check for human feedback on completed features (still relevant)
             feedback_items = await self.github_comm.check_for_approvals()
             
             # Handle any feedback that requires action
             for feedback in feedback_items or []:
                 await self._handle_project_owner_feedback(feedback)
             
-            print(f"\n🎉 Priority Queue workflow complete:")
-            print(f"   Processed features: {len(processed_features)}")
-            print(f"   Handled feedback: {len(feedback_items or [])}")
+            print(f"\n🎉 Project Repository workflow complete:")
+            print(f"   📋 Processed features: {len(processed_features)}")
+            print(f"   💬 Handled feedback: {len(feedback_items or [])}")
+            print(f"   📍 Repository: diginativa-game (project repo)")
             
             return processed_features
             
         except Exception as e:
-            print(f"❌ Priority Queue workflow failed: {e}")
+            print(f"❌ Project Repository workflow failed: {e}")
             return []
+
+    async def monitor_project_repo_features(self) -> List[Dict[str, Any]]:
+        """
+        NEW: Monitor project repository for feature requests instead of AI-team repo.
+        
+        This method:
+        1. Monitors diginativa-game repo for new features
+        2. Analyzes each feature request  
+        3. Creates linked story breakdown
+        4. Delegates to AI team
+        
+        Returns:
+            List of processed features with their results
+        """
+        try:
+            print("🔍 Monitoring project repository for new features...")
+            print("📂 Repository: diginativa-game")
+            
+            # Use new project repo monitoring from GitHub integration
+            new_requests = await self.github_comm.github.monitor_project_repo_for_features()
+            
+            if not new_requests:
+                print("ℹ️  No new feature requests found in project repo")
+                return []
+            
+            print(f"📋 Found {len(new_requests)} new feature requests in project repo")
+            
+            processed_features = []
+            
+            for request in new_requests:
+                try:
+                    print(f"\n🔍 Processing project repo feature #{request['number']}: {request['title']}")
+                    
+                    # Step 1: Analyze feature request using existing logic
+                    analysis = await self.analyze_feature_request(request)
+                    
+                    # Step 2: Post analysis results to PROJECT repo (not AI repo)
+                    posted = await self.github_comm.github.post_analysis_results(request, analysis)
+                    
+                    story_issues = []
+                    if posted and analysis.get("recommendation", {}).get("action") == "approve":
+                        print(f"   ✅ Feature approved - creating linked story breakdown...")
+                        
+                        # Step 3: Create story breakdown with parent-child linking
+                        story_issues = await self.create_story_breakdown_with_linking(analysis, request)
+                        
+                        if story_issues:
+                            print(f"   📝 Created {len(story_issues)} linked story issues")
+                            
+                            # Step 4: Delegate stories to team
+                            stories_for_delegation = []
+                            for issue_data in story_issues:
+                                story_data = self._convert_github_issue_to_story_data(issue_data)
+                                stories_for_delegation.append(story_data)
+                            
+                            delegation_result = await self.delegate_stories_to_team(stories_for_delegation)
+                            print(f"   🎯 Team delegation: {delegation_result['coordination_active']}")
+                        else:
+                            print(f"   ⚠️  No story issues were created")
+                    else:
+                        action = analysis.get("recommendation", {}).get("action", "unknown")
+                        print(f"   ℹ️  Feature not approved or posting failed: {action}")
+                    
+                    # Step 5: Record results
+                    processed_features.append({
+                        "request": request,
+                        "analysis": analysis,
+                        "story_issues": story_issues,
+                        "processed_at": datetime.now().isoformat(),
+                        "repository": "project_repo",
+                        "github_updated": posted
+                    })
+                    
+                except Exception as e:
+                    print(f"❌ Failed to process project repo feature #{request['number']}: {e}")
+                    # Still add to processed list but with error
+                    processed_features.append({
+                        "request": request,
+                        "error": str(e),
+                        "processed_at": datetime.now().isoformat(),
+                        "repository": "project_repo"
+                    })
+            
+            print(f"\n🎉 Processed {len(processed_features)} project repo features")
+            return processed_features
+            
+        except Exception as e:
+            print(f"❌ Project repo monitoring failed: {e}")
+            return []
+
+    def _convert_github_issue_to_story_data(self, github_issue_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Convert GitHub issue data to story format for delegation."""
+        try:
+            # Extract story info from GitHub issue title and data
+            github_issue = github_issue_data["github_issue"]
+            title = github_issue.title.replace("[STORY] ", "")
+            
+            return {
+                "story_id": github_issue_data["story_id"],
+                "title": title,
+                "description": github_issue.body[:200] + "..." if github_issue.body else f"Implementation of {title}",
+                "story_type": self._determine_story_type_from_title(title),
+                "assigned_agent": github_issue_data["assigned_agent"],
+                "github_issue_number": github_issue_data["number"],
+                "parent_feature_number": github_issue_data.get("parent_issue_number"),
+                "acceptance_criteria": ["Implementation according to specification", "Code follows architecture principles"],
+                "estimated_effort": "Medium",
+                "user_value": "Professional functionality for Anna",
+                "design_principles_addressed": ["Respekt för Tid", "Intelligens, Inte Infantilisering"]
+            }
+            
+        except Exception as e:
+            print(f"⚠️  Error converting GitHub issue to story data: {e}")
+            return {
+                "story_id": "UNKNOWN",
+                "title": "Unknown Story",
+                "description": "Error in conversion",
+                "story_type": "full_feature",
+                "assigned_agent": "utvecklare",
+                "acceptance_criteria": ["Fix conversion error"],
+                "estimated_effort": "Medium"
+            }
+
+    def _determine_story_type_from_title(self, title: str) -> str:
+        """Determine story type based on title content."""
+        title_lower = title.lower()
+        
+        if "ux specification" in title_lower or "specification" in title_lower:
+            return "specification"
+        elif "backend" in title_lower or "api" in title_lower:
+            return "backend"  
+        elif "frontend" in title_lower or "react" in title_lower or "component" in title_lower:
+            return "frontend"
+        elif "test" in title_lower:
+            return "testing"
+        elif "qa" in title_lower:
+            return "qa"
+        else:
+            return "full_feature"
 
     async def _handle_project_owner_feedback(self, feedback: Dict[str, Any]):
         """Handle feedback from project owner on completed features."""
@@ -1261,6 +1489,84 @@ class ProjektledareAgent:
                 "timestamp": datetime.now().isoformat(),
                 "monitoring_active": False
             }
+
+    async def handle_project_owner_communication(self, issue_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Handle different types of communication from project owner.
+        
+        Routes different issue types to appropriate handlers.
+        """
+        issue_type = issue_data.get("issue_type")
+        
+        try:
+            if issue_type == "feature_request":
+                return await self.process_github_feature_and_update(issue_data)
+            
+            elif issue_type == "feature_approval":
+                return await self.handle_feature_approval(issue_data)
+            
+            elif issue_type == "escalation_request":
+                return await self.handle_escalation_response(issue_data)
+            
+            elif issue_type == "bug_report":
+                return await self.handle_bug_report(issue_data)
+            
+            else:
+                print(f"⚠️  Unknown issue type: {issue_type}")
+                return {"error": f"Unknown issue type: {issue_type}"}
+                
+        except Exception as e:
+            print(f"❌ Error handling project owner communication: {e}")
+            return {"error": str(e)}
+
+    async def handle_feature_approval(self, approval_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Handle feature approval/rejection from project owner."""
+        try:
+            # Parse approval decision from issue content
+            approval_decision = self._parse_approval_decision(approval_data)
+            
+            if approval_decision["status"] == "APPROVED":
+                # Continue with normal workflow, maybe start next feature
+                print(f"✅ Feature approved by project owner")
+                
+            elif approval_decision["status"] == "REJECTED":
+                # Handle rejection, possibly create new stories based on feedback
+                print(f"🔄 Feature rejected - processing feedback")
+                required_changes = approval_decision.get("required_changes", [])
+                # TODO: Create new stories based on required changes
+                
+            # Update issue with AI response
+            await self._respond_to_approval_issue(approval_data, approval_decision)
+            
+            return {
+                "approval_processed": True,
+                "decision": approval_decision["status"],
+                "ai_response": "posted"
+            }
+            
+        except Exception as e:
+            return {"error": f"Approval handling failed: {str(e)}"}
+
+    async def handle_escalation_response(self, escalation_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Handle escalation response from project owner."""
+        try:
+            # Parse guidance from project owner
+            guidance = self._parse_escalation_guidance(escalation_data)
+            
+            # Apply guidance to current workflow
+            action_result = await self._apply_escalation_guidance(guidance)
+            
+            # Update escalation issue with AI response
+            await self._respond_to_escalation_issue(escalation_data, action_result)
+            
+            return {
+                "escalation_resolved": True,
+                "guidance_applied": action_result,
+                "ai_response": "posted"
+            }
+            
+        except Exception as e:
+            return {"error": f"Escalation handling failed: {str(e)}"}
 
     def _analyze_team_performance(self, story_details: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Analyze team performance metrics from story data."""
