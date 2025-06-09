@@ -92,8 +92,8 @@ Projektledare Agent
 
 ## Målbild flöde AI-teamutveckling
 
-'''mermaid
-graph TD
+```mermaid
+graph TD;
     A[GitHub Issue Created] --> B[Projektledare: monitor_new_feature_requests]
     B --> C{Feature Analysis with Claude}
     C --> D[DNA Alignment Check]
@@ -176,4 +176,4 @@ graph TD
     style U fill:#c8e6c9
     style AA fill:#ffcdd2
     style W fill:#fff3e0
-'''
+```
