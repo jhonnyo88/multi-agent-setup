@@ -41,7 +41,7 @@ from workflows.status_handler import StatusHandler, report_success, report_error
 
 # Tool imports with error handling
 try:
-    from tools.file_tools import FileReadTool, FileWriteTool
+    from tools.file_utils import read_file, write_file
     from tools.context_tools import FileSearchTool
     from tools.design_tools import DesignPrinciplesValidatorTool, AcceptanceCriteriaValidatorTool
     TOOLS_AVAILABLE = True
