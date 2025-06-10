@@ -20,7 +20,6 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any
 from pathlib import Path
 from .enhanced_workflow import EnhancedGitHubWorkflow
-from ..auto_implementation import create_auto_implementation_trigger
 
 try:
     from github import Github, GithubException, Auth
@@ -769,7 +768,6 @@ class ProjectOwnerCommunication:
                             print(f"   ✅ Created {len(story_issues)} story issues")
 
                             # Delegate stories to team automatically
-                            if projektledare.agent_coordinator:
                                 print("🎯 Auto-delegating stories to AI team...")
                                 delegation_result = await projektledare.delegate_stories_to_team(stories)
                                 if delegation_result['coordination_active']:
@@ -801,7 +799,6 @@ class ProjectOwnerCommunication:
         return []
     
 
-    async def process_new_features_with_auto_implementation(self) -> List[Dict[str, Any]]:
         """Enhanced process that includes automatic implementation triggering."""
         
         # Get normal feature processing results
@@ -812,7 +809,6 @@ class ProjectOwnerCommunication:
             if feature.get('github_updated') and feature.get('stories_created', 0) > 0:
                 try:
                     # Create auto implementation trigger
-                    auto_trigger = create_auto_implementation_trigger(
                         self.github.projektledare if hasattr(self.github, 'projektledare') else None,
                         self.github
                     )
@@ -826,12 +822,10 @@ class ProjectOwnerCommunication:
                         parent_issue_number, story_issues
                     )
                     
-                    feature['auto_implementation'] = trigger_result
                     print(f"🚀 Auto-implementation triggered for feature #{parent_issue_number}")
                     
                 except Exception as e:
                     print(f"⚠️  Auto-implementation trigger failed: {e}")
-                    feature['auto_implementation'] = {"success": False, "error": str(e)}
         
         return processed_features
 
