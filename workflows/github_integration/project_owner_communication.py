@@ -19,6 +19,8 @@ import json
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any
 from pathlib import Path
+from .enhanced_workflow import EnhancedGitHubWorkflow
+from ..auto_implementation import create_auto_implementation_trigger
 
 try:
     from github import Github, GithubException, Auth
@@ -119,7 +121,7 @@ class GitHubIntegration:
             print("🔍 Scanning for new feature requests...")
             
             # Get open issues with relevant labels
-            issues = self.ai_repo.get_issues(
+            issues = self.project_repo.get_issues(
                 state='open',
                 labels=['enhancement', 'ai-team']
             )
@@ -596,7 +598,15 @@ class GitHubIntegration:
         except Exception as e:
             print(f"❌ Error creating story breakdown: {e}")
             return []
-    
+
+    async def create_story_breakdown_issues_enhanced(self, parent_issue_data: Dict[str, Any], 
+                                                stories: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Enhanced story creation with development links."""
+        enhanced_workflow = EnhancedGitHubWorkflow(self)
+        return await enhanced_workflow.create_story_breakdown_with_development_links(
+            parent_issue_data, stories
+        )
+
     async def _create_single_story_issue(self, story: Dict[str, Any], 
                                        parent_issue_number: int) -> Optional[Dict[str, Any]]:
         """Create a single GitHub Issue for a story."""
@@ -757,6 +767,16 @@ class ProjectOwnerCommunication:
                                 request, stories
                             )
                             print(f"   ✅ Created {len(story_issues)} story issues")
+
+                            # Delegate stories to team automatically
+                            if projektledare.agent_coordinator:
+                                print("🎯 Auto-delegating stories to AI team...")
+                                delegation_result = await projektledare.delegate_stories_to_team(stories)
+                                if delegation_result['coordination_active']:
+                                    print(f"✅ Delegated {len(delegation_result['delegated_stories'])} stories to team")
+                                else:
+                                    print("⚠️  Story delegation failed")
+
                         else:
                             print(f"   ⚠️  No stories created")
                 
@@ -779,6 +799,41 @@ class ProjectOwnerCommunication:
         # TODO: Implement approval checking
         # This would scan for issues with 'feature-approval' label
         return []
+    
+
+    async def process_new_features_with_auto_implementation(self) -> List[Dict[str, Any]]:
+        """Enhanced process that includes automatic implementation triggering."""
+        
+        # Get normal feature processing results
+        processed_features = await self.process_new_features()
+        
+        # Auto-trigger implementation for approved features
+        for feature in processed_features:
+            if feature.get('github_updated') and feature.get('stories_created', 0) > 0:
+                try:
+                    # Create auto implementation trigger
+                    auto_trigger = create_auto_implementation_trigger(
+                        self.github.projektledare if hasattr(self.github, 'projektledare') else None,
+                        self.github
+                    )
+                    
+                    # Get parent issue number
+                    parent_issue_number = feature['request']['number']
+                    story_issues = feature.get('story_issues', [])
+                    
+                    # Trigger automatic implementation
+                    trigger_result = await auto_trigger.trigger_story_implementation(
+                        parent_issue_number, story_issues
+                    )
+                    
+                    feature['auto_implementation'] = trigger_result
+                    print(f"🚀 Auto-implementation triggered for feature #{parent_issue_number}")
+                    
+                except Exception as e:
+                    print(f"⚠️  Auto-implementation trigger failed: {e}")
+                    feature['auto_implementation'] = {"success": False, "error": str(e)}
+        
+        return processed_features
 
 
 # Factory function for easy usage

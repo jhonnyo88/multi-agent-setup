@@ -279,7 +279,8 @@ class StatusHandler:
         # Validate agent name
         valid_agents = {
             "projektledare", "speldesigner", "utvecklare", 
-            "testutvecklare", "qa_testare", "kvalitetsgranskare"
+            "testutvecklare", "qa_testare", "kvalitetsgranskare", 
+            "github_integration"
         }
         # 🔧 ADAPT: Update with your agent names
         

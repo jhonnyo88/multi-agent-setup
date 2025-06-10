@@ -146,6 +146,47 @@ async def test_real_workflow():
         traceback.print_exc()
         return False
 
+async def test_with_auto_implementation():
+    """Test workflow with automatic implementation."""
+    
+    print_section("Real AI Team Workflow Test (With Auto Implementation)")
+    
+    try:
+        # Initialize with enhanced workflow
+        from workflows.github_integration.project_owner_communication import ProjectOwnerCommunication
+        
+        github_comm = ProjectOwnerCommunication()
+        
+        # Use enhanced processing
+        feature_requests = await github_comm.process_new_features_with_auto_implementation()
+        
+        if feature_requests:
+            for feature in feature_requests:
+                print_success(f"Feature processed: #{feature['request']['number']}")
+                
+                if feature.get('auto_implementation', {}).get('success'):
+                    stories_delegated = feature['auto_implementation']['stories_processed']
+                    print_success(f"Auto-implementation: {stories_delegated} stories delegated")
+                    
+                    # Monitor progress for a few minutes
+                    print_step("Monitoring implementation progress...")
+                    await asyncio.sleep(30)  # Wait for delegation to complete
+                    
+                    # Check if implementation started
+                    projektledare = github_comm.github.projektledare if hasattr(github_comm.github, 'projektledare') else None
+                    if projektledare and projektledare.agent_coordinator:
+                        team_status = await projektledare.monitor_team_progress()
+                        active_stories = team_status.get('team_overview', {}).get('active_stories', 0)
+                        print_success(f"Implementation status: {active_stories} stories active")
+                else:
+                    print_info("Auto-implementation not triggered")
+        
+        return True
+        
+    except Exception as e:
+        print_error(f"Enhanced workflow test failed: {e}")
+        return False
+
 async def monitor_progress_continuously():
     """Continuously monitor team progress for real-time updates."""
     
