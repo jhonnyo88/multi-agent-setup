@@ -27,7 +27,7 @@ def debug_crewai_tools():
     tools_status = {}
     
     try:
-        from tools.file_tools import FileReadTool, FileWriteTool
+        from tools.file_utils import read_file, write_file
         tools_status["file_tools"] = "✅ OK"
     except Exception as e:
         tools_status["file_tools"] = f"❌ {e}"
@@ -50,7 +50,7 @@ def debug_crewai_tools():
     # Test 3: Tool creation
     print("\n3. Testing tool creation...")
     try:
-        from tools.file_tools import FileReadTool, FileWriteTool
+        from tools.file_utils import read_file, write_file
         
         file_read_tool = FileReadTool()
         print(f"✅ FileReadTool created: {type(file_read_tool)}")
